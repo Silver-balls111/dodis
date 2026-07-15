@@ -1,16 +1,19 @@
-#include <chrono>
-#include <fstream>
-#include <iostream>
-#include <format>
-#include <sstream>
+#include <ncurses.h>
 
 int main() {
-    auto today = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now());
-    std::cout << std::format("{:%Y/%m/%d}", today) << "\n";
+    initscr();
+    start_color();
+    init_pair(1, COLOR_RED, COLOR_BLACK);
 
-    std::fstream file {"task.txt"};
-    std::stringstream scontent;
-    std::string content;
-    file >> content;
-    std::cout<<content;
+    WINDOW *win = newwin(10, 45, 0, 0);
+    refresh();
+    box(win, 0, 0);
+    wattron(win, COLOR_PAIR(1));
+    mvwprintw(win, 1, 1, "TEST");
+    wattroff(win, COLOR_PAIR(1));
+    wrefresh(win);
+
+    getch();
+    endwin();
+    return 0;
 }

@@ -1,5 +1,7 @@
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/ftxui.hpp>
+#include <pthread.h>
+#include <vector>
 
 int main() {
     using namespace ftxui;
@@ -38,29 +40,54 @@ int main() {
     // );
 
     //Elements row_item; much more apparent later
-    std::vector<Element> row_item;
-    for(int i=0; i<7; ++i){
-        row_item.push_back(text("▆") | color(Color::Red));
-    }
-
-    std::vector<Elements> colum_item;
-    for(int i=0; i<53; ++i){
-        colum_item.push_back(row_item);
-    }
-
     std::vector<Elements> rows;
     for(int i=0; i<7; ++i){
         std::vector<Element> columns;
         for(int j=0; j<53; ++j){
-            columns.push_back(text("▆") | color(Color::Red));   //lower three quarter block
             columns.push_back(text(" "));
+            columns.push_back(text("▆") | color(Color::Red));   //lower three quarter block
         }
         rows.push_back(columns);
     }
 
-    Element table = frame(
-        gridbox(rows)
-    );
+    std::vector<Element> day;
+    std::vector<std::string> days {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+    for(auto x: days){
+        day.push_back(text(x) | bold | color(Color::Red));
+    }
+    //day |= size(WIDTH, EQUAL, 3)
+
+    std::vector<Element> space;
+    for(int i=0; i<7; ++i)
+        space.push_back(text(" "));
+
+    std::vector<Element> month;
+    //add a filler first element
+    std::vector<std::string> months {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul",
+        "Aug", "Sep", "Oct", "Nov", "Dec"};
+    for(auto x: months){
+        month.push_back(text(" ")); //to match the initial space of grid
+        month.push_back(text(x) | bold | color(Color::Red));
+        //depending upon the number of weeks a month has we put spaces
+        // 4 for 4 week month 5 for 5 week.
+        // for now 4 temporary value
+        month.push_back(text("    "));
+    }
+
+
+    hbox(month);
+    Element table =
+        gridbox({
+            {
+                text(" ") | size(WIDTH, EQUAL, 4),
+                hbox(month),
+            },
+            {
+                vbox(day) | size(WIDTH, EQUAL, 4),
+                gridbox(rows)
+            }
+        });
+
 
     auto screen = Screen::Create(Dimension::Fit(table));
     //Render(screen, document);

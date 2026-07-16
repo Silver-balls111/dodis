@@ -1,36 +1,71 @@
-#include <ncurses.h>
-#include <iostream>
-#include <vector>
-#include <string>
-using namespace std;
+#include <ftxui/dom/elements.hpp>
+#include <ftxui/ftxui.hpp>
 
-int main(){
-    initscr();
+int main() {
+    using namespace ftxui;
 
-    WINDOW * win = newwin(10, 45, 4, 0);
-    refresh();
-    box(win, 0, 0);
-    wrefresh(win);
+    Element document = frame(vbox({
+        text("The window") | bold | color(Color::Blue),
+        separator(),
+        gauge(0.5),
+        text("The footer"),
+        text("The footer"),
+        text("The footer"),
+        text("The footer"),
+    })
+    );
 
-    if(!has_colors()){
-        printw("Colors not supported");
-        getch();
-        return -1;
-    }
+    Element sep = separatorHSelector(20,5, Color::Red, Color::Yellow);
+    Cell cell;
+    cell.character = "X";
+    document |= flex;
+    document |= borderWith(cell);
+    //didn't work, neither did frame
+    document |= vscroll_indicator;
 
-    start_color();
+    // auto& cell = screen.CellAt(3, 3);
+    // cell.character = "X";
+    // cell.bold = true;
+    // cell.foreground_color = Color::Red;
 
-    init_pair(1, COLOR_RED, COLOR_BLACK);
-    vector<string> days{"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
-    wattron(win, COLOR_PAIR(1));
+    // Element column = frame(
+    //     vbox({
+    //         text("▆") | color(Color::Red),
+    //         text("▆") | color(Color::Yellow),
+    //         text("▆") | color(Color::Blue),
+    //         text("▆") | color(Color::Orange1),
+    //     })
+    // );
+
+    //Elements row_item; much more apparent later
+    std::vector<Element> row_item;
     for(int i=0; i<7; ++i){
-        mvwprintw(win, i+2, 1, days[i].c_str());
+        row_item.push_back(text("▆") | color(Color::Red));
     }
-    wattroff(win, COLOR_PAIR(1));
-    wattron(win, A_BOLD);
-    mvwprintw(win, 1, 1, "Days");
-    wattroff(win, A_BOLD);
-    wrefresh(win);
-    getch();
-    endwin();
+
+    std::vector<Elements> colum_item;
+    for(int i=0; i<53; ++i){
+        colum_item.push_back(row_item);
+    }
+
+    std::vector<Elements> rows;
+    for(int i=0; i<7; ++i){
+        std::vector<Element> columns;
+        for(int j=0; j<53; ++j){
+            columns.push_back(text("▆") | color(Color::Red));   //lower three quarter block
+            columns.push_back(text(" "));
+        }
+        rows.push_back(columns);
+    }
+
+    Element table = frame(
+        gridbox(rows)
+    );
+
+    auto screen = Screen::Create(Dimension::Fit(table));
+    //Render(screen, document);
+    //Render(screen, sep);
+    Render(screen, table);
+    screen.Print();
+    return 0;
 }

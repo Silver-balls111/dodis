@@ -45,7 +45,7 @@ int main() {
         std::vector<Element> columns;
         for(int j=0; j<53; ++j){
             columns.push_back(text(" "));
-            columns.push_back(text("▆") | color(Color::Red));   //lower three quarter block
+            columns.push_back(text("") | color(Color::Red));   //nerd-font f0c8
         }
         rows.push_back(columns);
     }
@@ -84,7 +84,7 @@ int main() {
             },
             {
                 vbox(day) | size(WIDTH, EQUAL, 4),
-                gridbox(rows)
+                xframe(gridbox(rows)),
             }
         });
 

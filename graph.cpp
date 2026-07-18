@@ -1,3 +1,4 @@
+#include <ftxui/component/component.hpp>
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/ftxui.hpp>
 #include <pthread.h>
@@ -39,19 +40,27 @@ int main() {
     //     })
     // );
 
+    unsigned int first_day = 4;
+    unsigned int last_day = 4;
+
     //Elements row_item; much more apparent later
     std::vector<Elements> rows;
     for(int i=0; i<7; ++i){
         std::vector<Element> columns;
         for(int j=0; j<53; ++j){
             columns.push_back(text(" "));
-            columns.push_back(text("") | color(Color::Red));   //nerd-font f0c8
+            if (j == 0 && i < first_day)
+                columns.push_back(text(" "));
+            else if (j == 52 && i > last_day)
+                columns.push_back(text(" "));
+            else
+                columns.push_back(text("") | color(Color::Red));   //nerd-font f0c8
         }
         rows.push_back(columns);
     }
 
     std::vector<Element> day;
-    std::vector<std::string> days {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+    std::vector<std::string> days {"   ", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
     for(auto x: days){
         day.push_back(text(x) | bold | color(Color::Red));
     }
@@ -75,6 +84,7 @@ int main() {
     }
 
 
+
     hbox(month);
     Element table =
         gridbox({
@@ -84,15 +94,28 @@ int main() {
             },
             {
                 vbox(day) | size(WIDTH, EQUAL, 4),
-                xframe(gridbox(rows)),
+                gridbox(rows) | hscroll_indicator | xframe |
+                size(WIDTH, ftxui::LESS_THAN, 45),
             }
         });
 
 
-    auto screen = Screen::Create(Dimension::Fit(table));
-    //Render(screen, document);
-    //Render(screen, sep);
-    Render(screen, table);
-    screen.Print();
+    auto renderer = Renderer([&]{
+        return hbox({
+            vbox(day) | size(WIDTH, EQUAL, 4),
+            vbox({
+                hbox(month),
+                gridbox(rows),
+            }) | hscroll_indicator | frame ,
+        });
+    });
+    auto screen = App::TerminalOutput();
+    screen.Loop(renderer);
+
+    // auto screen = Screen::Create(Dimension::Fit(table));
+    // //Render(screen, document);
+    // //Render(screen, sep);
+    // Render(screen, table);
+    // screen.Print();
     return 0;
 }

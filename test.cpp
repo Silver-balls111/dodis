@@ -1,19 +1,40 @@
-#include <ncurses.h>
+#include <cmath>
+#include <iostream>
+#include <chrono>
+
+enum class Days{
+    Sun=1, Mon, Tue, Wed, Thu, Fri, Sat
+};
+using namespace std::chrono;
 
 int main() {
-    initscr();
-    start_color();
-    init_pair(1, COLOR_RED, COLOR_BLACK);
+    year_month_day d = 2026y/1/3;
+    sys_days sd = d;                 // convert to day-count time_point
+    weekday wd = weekday{sd};        // extract weekday
 
-    WINDOW *win = newwin(10, 45, 0, 0);
-    refresh();
-    box(win, 0, 0);
-    wattron(win, COLOR_PAIR(1));
-    mvwprintw(win, 1, 1, "TEST");
-    wattroff(win, COLOR_PAIR(1));
-    wrefresh(win);
+    unsigned idx = wd.c_encoding();  // 0=Sun ... 6=Sat
+    unsigned iso = wd.iso_encoding();// 1=Mon ... 7=Sun
+    //std::cout<<idx;
 
-    getch();
-    endwin();
-    return 0;
+
+    year_month_day jan1 = 2026y/1/1;
+    sys_days sjan1 = jan1;
+
+    weekday j1_wd = weekday{sjan1};        // extract weekday
+
+    unsigned j1_idx = j1_wd.c_encoding();  // 0=Sun ... 6=Sat
+    unsigned j1_iso = wd.iso_encoding();// 1=Mon ... 7=Sun
+
+    int x = 6 - j1_idx;
+    std::cout<<x<<'\n';
+    unsigned int week {0};
+    if((sd - sjan1).count() - x > 0){
+        std::cout<<"in  if\n";
+        week = std::ceil((((sd - sjan1).count() - x) / 7) + 1);
+    }
+    else{
+        week = 0;
+    }
+    auto diff = (sd - sjan1).count();
+    std::cout<<diff<<'\n'<<week;
 }

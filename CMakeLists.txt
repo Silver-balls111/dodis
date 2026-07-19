@@ -5,7 +5,8 @@ project(dodis)
 add_executable(graph)
 target_sources(graph
 	PRIVATE
-		graph.cpp
+		finalGraph.cpp
+		monthInfo.cpp
 )
 
 include(FetchContent)

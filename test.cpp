@@ -8,7 +8,7 @@ enum class Days{
 using namespace std::chrono;
 
 int main() {
-    year_month_day d = 2026y/1/3;
+    year_month_day d = 2026y/5/31;
     sys_days sd = d;                 // convert to day-count time_point
     weekday wd = weekday{sd};        // extract weekday
 

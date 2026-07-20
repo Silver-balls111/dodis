@@ -11,13 +11,13 @@ Build/run:
   ```bash
      git clone [https://github.com/your-username/dodis.git](https://github.com/your-username/dodis.git)
      cd dodis
-     ```
+  ```
   Build using CMake:
   ```bash
       cmake -B build -DCMAKE_BUILD_TYPE=Release
       cmake --build build
       ./build/dodis
-    ```
+  ```
     
 Usage:
   Build using CMake as instructed above or just download the "dodis" file and run

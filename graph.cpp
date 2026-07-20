@@ -91,7 +91,7 @@ void Graph(){
         for(size_t i=0; i<weeks.size(); ++i){
             for(size_t a=0; a<rows.size(); ++a){
                 for(size_t b=0; b<rows[a].size(); ++b){
-                    if(b == weeks[i] && a == day_no[i])
+                    if(b == weeks[i] * 2 && a == day_no[i])
                         rows[a][b] = text("") | color(Color::Blue);
                 }
             }

@@ -6,7 +6,6 @@ void Update();
 void Graph();
 
 int main(const int argc, const char **argkv){
-    std::cout<<argc<<'\n'<<argkv[1];
     if(argc == 1){
         //Menu()
     }

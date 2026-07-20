@@ -1,4 +1,5 @@
 #include <chrono>
+#include <ftxui/screen/color_info.hpp>
 #include <iostream>
 #include <vector>
 #include <sstream>
@@ -27,7 +28,7 @@ void Graph(){
                 if ((j == 0 && i < jan1) || (j == 52 && i > dec31))
                     columns.push_back(text(" "));
                 else
-                    columns.push_back(text("") | color(Color::Red));   //nerd-font f0c8
+                    columns.push_back(text("") | color(Color::RGB(0, 0, 3)) );   //nerd-font f0c8
 
                 /* the reason it is box then space is that later when we replace we replace the first match
                 * and to replace the box the first match needs to be box not space. while there is a solution
@@ -68,6 +69,7 @@ void Graph(){
 
         std::vector<int> weeks;
         std::vector<int> day_no;
+        std::vector<float> opacitys;
 
         for(int i=0;;++i){
             std::chrono::year_month_day ymd;
@@ -83,16 +85,26 @@ void Graph(){
             }
             auto week_no = weekNo(ymd);
             auto day = weekdayNo(ymd);
+            opacitys.push_back(opacity);
             weeks.push_back(week_no);
             day_no.push_back(day);
         }
 
+        //(69, 52, 77, 1)()((138, 95, 127, 1))(195, 131, 168, 1)(252,166,209,1)
         //will optimize later
         for(size_t i=0; i<weeks.size(); ++i){
             for(size_t a=0; a<rows.size(); ++a){
                 for(size_t b=0; b<rows[a].size(); ++b){
-                    if(b == weeks[i] * 2 && a == day_no[i])
-                        rows[a][b] = text("") | color(Color::Blue);
+                    if(b == weeks[i] * 2 && a == day_no[i]){
+                        if(opacitys[i] > 0 && opacitys[i] <= 0.25)
+                            rows[a][b] = text("") | color(Color::RGB(69, 52, 77));
+                        else if(opacitys[i] > 0.25 && opacitys[i] <= 0.50)
+                            rows[a][b] = text("") | color(Color::RGB(138, 95, 127));
+                        else if(opacitys[i] > 0.50 && opacitys[i] <= 0.75)
+                            rows[a][b] = text("") | color(Color::RGB(195, 131, 168));
+                        else
+                            rows[a][b] = text("") | color(Color::RGB(252, 166, 209));
+                    }
                 }
             }
         }

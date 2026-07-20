@@ -1,4 +1,30 @@
-This is to-do list program.
-Name derived from to-**do** + **dis**cipline => dodis.
-It will support progress tracking in github contribution graph style.
-Later version should support random image contribution graph as well.
+Dodis:
+  To-do list application made in cpp. Uses FTXUI library.
+
+Features:
+  Can create a task list
+  Update the task list
+  Get contribution graph. (currently supports only one year.)
+
+Build/run:
+  Clone the repo:
+  ```bash
+     git clone [https://github.com/your-username/dodis.git](https://github.com/your-username/dodis.git)
+     cd dodis
+     ```
+  Build using CMake:
+  ```bash
+      cmake -B build -DCMAKE_BUILD_TYPE=Release
+      cmake --build build
+      ./build/dodis
+    ```
+    
+Usage:
+  Build using CMake as instructed above or just download the "dodis" file and run
+  ./dodis <agrs>
+  
+To-Do:
+  Make the whole ui in FTXUI.
+  Choose a suitable default color for the graph.
+  Add scroller to the graph.
+  Support image to be used in contribution graph.

@@ -15,3 +15,7 @@ struct MonthInfo{
      std::chrono::weekday end_weekday;
      unsigned int end_weekday_no;
 };
+
+unsigned int weekdayNo(std::chrono::year_month_day ymd);
+unsigned int weekNo(std::chrono::year_month_day ymd);
+unsigned int weeksInMonth(std::chrono::year year, std::chrono::month month);

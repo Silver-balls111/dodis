@@ -5,49 +5,56 @@
 
 using namespace std;
 
-int main(){
-    cout<<"Enter task: ";
-    int task_count {1};
-    while (true){
-        cout<<task_count<<". ";
-        string temp{};
-        getline(cin, temp);
-        stringstream task{temp};
+void Create(){
+    string dash(5, '-');
+    cout<<dash<<"Create Tasks"<<dash<<'\n';
+    ofstream file {"tasks.txt"};
+    try{
+        if(!file)
+            throw runtime_error("Opening tasks.txt file");
 
-        string first_word{};
-        task>>first_word;
+        for(int task_count=1;;++task_count){
+            cout<<task_count<<". ";
+            string temp{};
+            getline(cin, temp);
+            stringstream task{temp};
 
-        if(!task){
-            if(task.eof()){
-                task.clear();
-            }
-            else{
-                throw runtime_error("Bad input.");
-            }
-        }
+            string first_word{};
+            task>>first_word;
 
-        if((first_word == "q") || (first_word == "quit")){
-            string second_word{};
-            task>>second_word;
             if(!task){
                 if(task.eof()){
-                    //return from function
-                    return 0;
+                    //task.clear();
+                    return;
                 }
-                if(task.fail()){
-                    throw runtime_error("bad input");
+                else{
+                    throw runtime_error("Bad input.");
                 }
             }
-            //if task didn't fail then this is not exit call
+
+            if((first_word == "q") || (first_word == "quit")){
+                string second_word{};
+                task>>second_word;
+                if(!task){
+                    if(task.eof()){
+                        return;
+                    }
+                    if(task.fail()){
+                        throw runtime_error("Bad input");
+                    }
+                }
+                //if task didn't fail then this is not exit call
+            }
+
+            //if we reached here then it was a valid task not a quit call
+            file << task.str() << '\n';
+            // do we need to clear the stringstream buffer?
+            task.str("");
+            task.clear();
         }
-
-        //if we reached here then it was a valid task not a quit call
-        ofstream file {"tasks.txt", ios::app};
-        if(!file)
-            throw runtime_error("Error opening tasks.txt file");
-
-        file << task.str() << '\n';
-        // do we need to clear the stringstream buffer?
-        ++task_count;
-    }
+   }
+   catch(exception e){
+       std::cerr<<"Error Occured: "<<e.what()<<'\n';
+       return;
+   }
 }

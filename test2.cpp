@@ -1,56 +1,67 @@
-#include <chrono>
-#include <fstream>
-#include <sstream>
-#include <iostream>
-#include <cmath>
+#include <ftxui/component/component.hpp>
+#include <ftxui/component/screen_interactive.hpp>
 
-unsigned int weekday_no(std::chrono::year_month_day ymd){
-    std::chrono::sys_days sd = ymd;
-    int x = std::chrono::weekday(sd).c_encoding();
-    std::cout<<x<<'\n';
-    return x;
-}
+using namespace ftxui;
 
-auto weeksInMonth(std::chrono::year year, std::chrono::month month){
-    std::chrono::year_month_day start = {year/month/1};
-    std::chrono::sys_days s_start = start;
-    std::chrono::year_month_day last = {year/std::chrono::month_day_last(month)};
-    std::chrono::sys_days s_last = last;
+int main() {
+  auto screen = ScreenInteractive::TerminalOutput();
 
-    int diff = (s_last - s_start).count();
-    std::cout<<diff;
-    return (diff + weekday_no(start))/ 7 + 1;     //ceiling taken here cuz we need number of week starting from 1
-}
+  // --- state ---
+  std::string name;
+  int tab_index = 0;
+  std::vector<std::string> tab_labels = {"Form", "About"};
+  bool show_modal = false;
 
-int main(){
-    using namespace std;
-    ifstream file{"contributions.txt"};
+  // --- page 1: a form ---
+  Component name_input = Input(&name, "Your name");
+  Component submit_button = Button("Submit", [&] { show_modal = true; });
+  Component form = Container::Vertical({name_input, submit_button});
+  Component form_view = Renderer(form, [&] {
+    return vbox({
+        text("Enter your name:"),
+        name_input->Render() | border,
+        submit_button->Render(),
+    });
+  });
 
-    stringstream file_buffer;
-    file_buffer<<file.rdbuf();
+  // --- page 2: static info ---
+  Component about_view = Renderer([] {
+    return text("A tiny FTXUI demo.") | center;
+  });
 
-    //cout<<s.str();
-    while (true){
-        std::chrono::year_month_day ymd{};
-        float opacity{0.0};
-        // string temp;
-        // file_buffer>>temp;
-        // file_buffer>> opacity;
-        // stringstream temps;
-        // temps<<temp;
-        //consume the whitespace because parserser dosen't do it.
-        file_buffer >>std::ws >> std::chrono::parse("%Y/%m/%d", ymd)>>opacity;
+  // --- tab navigation menu + tab content ---
+  Component tab_toggle = Toggle(&tab_labels, &tab_index);
+  Component tab_content = Container::Tab({form_view, about_view}, &tab_index);
 
-        //cout<<ymd<<"\t"<<opacity<<'\n';
-        cout<<file_buffer.str();
-        if(!file_buffer){
-            if(file_buffer.eof())
-                break;
-            else{
-                cerr<<"error";
-                break;
-            }
-        }
-        cout<<"non buff"<<ymd<<"\t"<<opacity<<'\n';
-    }
+  Component main_view = Renderer(tab_content, [&] {
+    return vbox({
+        tab_toggle->Render(),
+        separator(),
+        tab_content->Render(),
+    }) | border;
+  });
+
+  // --- modal dialog on top of everything ---
+  Component dialog = Renderer([&] {
+    return vbox({
+               text("Hello, " + name + "!"),
+               text("Press Enter to close."),
+           }) |
+           border | center;
+  });
+  Component dialog_wrapped = dialog | CatchEvent([&](Event e) {
+    if (e == Event::Return) { show_modal = false; return true; }
+    return false;
+  });
+
+  Component app = Container::Vertical({ main_view});
+  app = Modal(app, dialog_wrapped, &show_modal);
+
+  // --- global quit key ---
+  app = app | CatchEvent([&](Event e) {
+    if (e == Event::Character('q')) { screen.Exit(); return true; }
+    return false;
+  });
+
+  screen.Loop(app);
 }

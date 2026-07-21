@@ -4,10 +4,11 @@
 void Create();
 void Update();
 void Graph();
+void Help();
 
 int main(const int argc, const char **argkv){
     if(argc == 1){
-        //Menu()
+        Help();
     }
     else if(argc == 2){
         if(!strcmp(argkv[1], "-c")){     //strcmp return 0 if equal so !
@@ -25,13 +26,13 @@ int main(const int argc, const char **argkv){
         }
         else{
             std::cerr<<"Invalid argument.";
-            //help()
+            Help();
             return 1;
         }
     }
     else{
         std::cerr<<"Invalid argument.";
-        //help()
+        Help();
         return 1;
     }
 }

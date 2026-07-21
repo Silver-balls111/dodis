@@ -111,7 +111,7 @@ void Update(){
             contribution_file.close();
             opacitys[index] = final_opacity;
             //since we found duplicate entry gotta rewirte the whole file so close and reopen.
-            ofstream contribution {"contributions.txt", ios::out};
+            ofstream contribution {contribution_file_name, ios::out};
             for (size_t i=0; i<dates.size(); ++i){
                 contribution << dates[i] << '\t' << setprecision(3)<<opacitys[i] << '\n';
             }

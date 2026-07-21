@@ -28,7 +28,7 @@ void Graph(){
                 if ((j == 0 && i < jan1) || (j == 52 && i > dec31))
                     columns.push_back(text(" "));
                 else
-                    columns.push_back(text("") | color(Color::RGB(0, 0, 3)) );   //nerd-font f0c8
+                    columns.push_back(text("") | color(Color::RGB(128, 128, 128)) );   //nerd-font f0c8
 
                 /* the reason it is box then space is that later when we replace we replace the first match
                 * and to replace the box the first match needs to be box not space. while there is a solution

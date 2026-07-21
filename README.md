@@ -9,7 +9,7 @@
 **Build/run**:
   - Clone the repo:
   ```bash
-     git clone [https://github.com/Silver-balls111/dodis.git]
+     git clone https://github.com/Silver-balls111/dodis.git
      cd dodis
   ```
   - Build using CMake:
@@ -26,6 +26,8 @@
   ```
   
 **To-Do**:
+  - Add help()
+  - Support multiple year.
   - Make the whole ui in FTXUI.
   - Choose a suitable default color for the graph.
   - Add scroller to the graph.

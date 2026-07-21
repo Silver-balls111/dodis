@@ -9,6 +9,7 @@ target_sources(dodis
         create.cpp
         update.cpp
         graph.cpp
+        help.cpp
         monthInfo.cpp
 )
 

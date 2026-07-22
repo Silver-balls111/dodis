@@ -9,7 +9,7 @@
 #include "monthInfo.hpp"
 
 
-void Graph(){
+void Graph(bool interactive){
     using namespace ftxui;
 
     try{
@@ -109,21 +109,36 @@ void Graph(){
             }
         }
 
-        auto renderer = Renderer([&]{
-            return hbox({
+        if (interactive){
+            auto renderer = Renderer([&]{
+                return hbox({
+                    vbox(day) | size(WIDTH, EQUAL, 5),
+                    vbox({
+                        hbox(month),
+                        gridbox(rows),
+                    }) | hscroll_indicator | xframe
+                });
+            });
+
+
+            auto screen = App::TerminalOutput();
+            screen.Loop(renderer);
+
+            return;
+        }
+        else{
+            auto frame = hbox({
                 vbox(day) | size(WIDTH, EQUAL, 5),
                 vbox({
                     hbox(month),
                     gridbox(rows),
                 }) | hscroll_indicator | xframe
             });
-        });
 
-
-        auto screen = App::TerminalOutput();
-        screen.Loop(renderer);
-
-        return;
+            auto screen = Screen::Create(Dimension::Fit(frame));
+            Render(screen, frame);
+            screen.Print();
+        }
     }
     catch(std::exception e){
         std::cerr<<"Error: "<<e.what();

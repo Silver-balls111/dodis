@@ -3,7 +3,7 @@
 
 void Create();
 void Update();
-void Graph();
+void Graph(bool interactive);
 void Help();
 
 int main(const int argc, const char **argkv){
@@ -17,11 +17,11 @@ int main(const int argc, const char **argkv){
         }
         else if(!strcmp(argkv[1], "-u")){
             Update();
-            Graph();
+            Graph(false);
             return 0;
         }
         else if(!strcmp(argkv[1], "-g")){
-            Graph();
+            Graph(true);
             return 0;
         }
         else{

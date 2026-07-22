@@ -34,7 +34,7 @@ void Update(){
 
             float opacity {0};
             while (true){
-                cout<<task_count<<". "<<task<<" (done(y)/not-done(n)/percent): ";
+                cout<<task_count<<". "<<task<<" [done(y)/not-done(n)/percent]: ";
                 string answer;
                 cin>>answer;
                 if ((answer == "y") || answer == "yes"){
@@ -89,7 +89,6 @@ void Update(){
             }
         }
         read_contribution.close();
-        cout<<buffer.str();
 
         fstream contribution_file {contribution_file_name, ios::app};
         if (!contribution_file)
@@ -111,7 +110,7 @@ void Update(){
             contribution_file.close();
             opacitys[index] = final_opacity;
             //since we found duplicate entry gotta rewirte the whole file so close and reopen.
-            ofstream contribution {contribution_file_name, ios::out};
+            ofstream contribution {contribution_file_name};
             for (size_t i=0; i<dates.size(); ++i){
                 contribution << dates[i] << '\t' << setprecision(3)<<opacitys[i] << '\n';
             }

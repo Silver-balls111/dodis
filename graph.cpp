@@ -1,21 +1,28 @@
 #include <chrono>
+#include <ftxui/dom/elements.hpp>
 #include <ftxui/screen/color_info.hpp>
 #include <iostream>
+#include <string>
 #include <vector>
 #include <sstream>
 #include <fstream>
+#include <filesystem>
 #include <ftxui/ftxui.hpp>
 #include <stdexcept>
 #include "monthInfo.hpp"
 
+namespace fs = std::filesystem;
 
 void Graph(bool interactive){
     using namespace ftxui;
 
     try{
-        unsigned int int_choosen_year = 2026; //should get from user input
-        std::string contribution_file_name = std::to_string(int_choosen_year) + ".txt";
-        auto choosen_year = std::chrono::year(int_choosen_year);
+        const auto today = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now());
+        std::chrono::year_month_day ymd = today;
+        unsigned int int_choosen_year = static_cast<int>(ymd.year()); //should get from user input
+        unsigned int* ptr = &int_choosen_year;
+        std::string contribution_file_name = std::to_string(*ptr) + ".txt";
+        auto choosen_year = std::chrono::year(*ptr);
 
         unsigned int jan1 = MonthInfo{choosen_year, std::chrono::January}.start_weekday_no;
         unsigned int dec31 = MonthInfo{choosen_year, std::chrono::December}.end_weekday_no;
@@ -60,9 +67,10 @@ void Graph(bool interactive){
             month.push_back(text(" ")); //to match the initial space of grid
         }
 
-        std::ifstream file {contribution_file_name};
+        fs::path base = "contributions";
+        std::ifstream file {base / contribution_file_name};
         if (!file)
-            throw std::runtime_error("Faile to open 'contribution' file");
+            throw std::runtime_error("Failed to open 'contribution' file");
 
         std::stringstream file_buffer;
         file_buffer << file.rdbuf();
@@ -110,21 +118,51 @@ void Graph(bool interactive){
         }
 
         if (interactive){
-            auto renderer = Renderer([&]{
+            std::vector<int> file_names;
+            for(const auto& entry: fs::directory_iterator(base)){
+                if (entry.is_regular_file() && entry.path().extension() == fs::path(".txt")){
+                    try{
+                        int x = std::stoi(entry.path().stem());
+                        std::chrono::year yr{x};
+                        if(yr.ok())
+                            file_names.push_back(x);
+                    }
+                    catch(std::invalid_argument){ continue;}
+                    catch(std::out_of_range){ continue; }
+                }
+            }
+            std::ranges::sort(file_names, std::greater<int>());         //descending order
+            auto style = ButtonOption::Animated(Color::Default, Color::Blue,
+                                                Color::Default, Color::Red);
+
+            auto buttons = Container::Vertical({});
+            for(int file: file_names){
+                auto button = Button( std::to_string(file), [&int_choosen_year, file]{ int_choosen_year = file;}, style);
+                buttons->Add(button);
+            }
+            auto renderer = Renderer(buttons, [&]{
                 return hbox({
                     vbox(day) | size(WIDTH, EQUAL, 5),
                     vbox({
                         hbox(month),
                         gridbox(rows),
-                    }) | hscroll_indicator | xframe
+                    }),
+                    buttons->Render() | vscroll_indicator | frame |
+                         size(HEIGHT, LESS_THAN, 8),
+                    text(std::to_string(int_choosen_year)),
+                    text(contribution_file_name),
                 });
             });
 
-
             auto screen = App::TerminalOutput();
+            renderer |= CatchEvent([&](Event event) {
+              if (event == Event::Character('q')) {
+                screen.ExitLoopClosure()();
+                return true;
+              }
+              return false;
+            });
             screen.Loop(renderer);
-
-            return;
         }
         else{
             auto frame = hbox({
@@ -140,7 +178,7 @@ void Graph(bool interactive){
             screen.Print();
         }
     }
-    catch(std::exception e){
+    catch(std::runtime_error const& e){
         std::cerr<<"Error: "<<e.what();
         return;
     }

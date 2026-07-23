@@ -2,6 +2,7 @@
 #include <iomanip>
 #include <iostream>
 #include <fstream>
+#include <filesystem>
 #include <stdexcept>
 #include <chrono>
 #include <format>
@@ -90,7 +91,8 @@ void Update(){
         }
         read_contribution.close();
 
-        fstream contribution_file {contribution_file_name, ios::app};
+        std::filesystem::path base = "contributions";
+        fstream contribution_file {base / contribution_file_name, ios::app};
         if (!contribution_file)
             throw runtime_error("Couldn't open contributions file.");
 

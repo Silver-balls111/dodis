@@ -26,11 +26,10 @@
   ```
   
 **To-Do**:
-  - Update help()
+  - Create help()       [done.]
   - Support multiple year.
-  - Update() should be non interactive graph, -g only interactive graph
   - Add option to allow editing the task file.
-  - Make the whole ui in FTXUI.
-  - Choose a suitable default color for the graph.
+  - Make the whole ui in FTXUI.     [Not really i like the simple version more text based rather than button based.]
+  - Choose a suitable default color for the graph.      [done choose grey.]
   - Add scroller to the graph.
   - Support image to be used in contribution graph.

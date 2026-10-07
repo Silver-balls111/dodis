@@ -13,7 +13,7 @@ using namespace std;
 
 void Update(){
     try{
-        ifstream read {"task.txt"};
+        ifstream read {"tasks.txt"};
         if (!read)
             throw runtime_error("Failed to open tasks file.");
 

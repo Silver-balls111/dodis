@@ -1,3 +1,0 @@
-learn cpp
-learn webdev
-do typing 15 mins

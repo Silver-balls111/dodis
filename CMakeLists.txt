@@ -2,10 +2,12 @@ cmake_minimum_required(VERSION 3.23)
 
 project(dodis)
 
-add_executable(dodis)
+add_executable(dodis
+  main.cpp
+)
+
 target_sources(dodis
     PRIVATE
-        main.cpp
         create.cpp
         update.cpp
         graph.cpp

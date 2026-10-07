@@ -26,6 +26,7 @@
   ```
   
 **To-Do**:
+  - Make the file path independent of the executable path
   - Fix gaps between months to be proper
   - Add option to allow editing the task file.
   - Add scroller to the graph.

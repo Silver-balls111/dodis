@@ -54,7 +54,8 @@ void implementation(const int& year,std::vector<Elements>& rows, std::vector<Ele
         month.push_back(text("    "));      //4 spaces
         int weeks = weeksInMonth(choosen_year, std::chrono::month(i+1));
         if (weeks > 4){
-            std::string space(weeks - 4, ' ');
+            //std::string space(weeks - 4, ' ');
+            std::string space(" ");
             month.push_back(text(space));
         }
         month.push_back(text(" ")); //to match the initial space of grid

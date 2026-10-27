@@ -1,5 +1,4 @@
 #include <cstdio>
-#include <iomanip>
 #include <iostream>
 #include <fstream>
 #include <filesystem>
@@ -17,11 +16,9 @@ void Update(){
         if (!read)
             throw runtime_error("Failed to open tasks file.");
 
-        //the default value is set to 1 as if the file is empty then opacity caluculation
-        // would throw 0/0 division error.
-        float aggregate_opacity {1};
+        float aggregate_opacity {0};
         float final_opacity {0};
-        int task_count {1};
+        int task_count {0};
         while (true){
             string task;
             getline(read, task);
@@ -33,7 +30,9 @@ void Update(){
                     throw runtime_error("Reading 'task'");
             }
 
+            ++task_count;
             float opacity {0};
+
             while (true){
                 cout<<task_count<<". "<<task<<" [done(y)/not-done(n)/percent]: ";
                 string answer;
@@ -64,66 +63,55 @@ void Update(){
                 }
             }
             aggregate_opacity += opacity;
-            ++task_count;
         }
         final_opacity = aggregate_opacity / task_count;
 
         const auto today = chrono::floor<chrono::days>(chrono::system_clock::now());
         const string todays_date = format("{:%Y/%m/%d}", today);
         const string current_year = format("{:%Y}", today);
-        const string contribution_file_name = current_year + ".txt";
-        // to handle file  being updated multiple a day
-        ifstream read_contribution {contribution_file_name};
+        std::filesystem::path contribution_file_path { std::format("contributions/{}.txt", current_year)};
+
+        /*
+        if we had just appended to the end of the file, when the program is run 
+        multiple time the same day there would be duplicate entry,
+        thus we rewrite the file each time, this also implies if the system date is
+        changed by the user to old dates then future entries will be removed.
+        */
+        ifstream read_contribution {contribution_file_path};
         vector<string> dates;
         vector<float> opacitys;
         stringstream buffer;
         if(read_contribution){
+            //makes buffer a pointer to the contribution file buffer
+            //so we don't have to worry about whitespce while reading
             buffer << read_contribution.rdbuf();
             while(buffer){
                 string date;
                 float opac;
                 buffer >> date >> opac;
-                if (!buffer)
+                if (!buffer || (date == todays_date)){
                     break;
+                }
                 dates.push_back(date);
                 opacitys.push_back(opac);
             }
         }
         read_contribution.close();
 
-        std::filesystem::path base = "contributions";
-        fstream contribution_file {base / contribution_file_name, ios::app};
+        dates.push_back(todays_date);
+        opacitys.push_back(final_opacity);
+
+        ofstream contribution_file {contribution_file_path};
         if (!contribution_file)
             throw runtime_error("Couldn't open contributions file.");
 
-        //auto it = ranges::find(dates, todays_date);
-        //while it is one line, it returns a iterator and later we have to find the
-        // position and there is signed to unsigned conversion so just avoid that
-        size_t index{0};
-        bool found = false;
-        for (size_t i=0; i<dates.size(); ++i){
-            if (dates[i] == todays_date){
-                index = i;
-                found = true;
-                break;
-            }
+        for (size_t i=0; i < dates.size(); ++i){
+            contribution_file << format("{}\t{:.3}\n", dates[i], opacitys[i]);
         }
-        if (found){
-            contribution_file.close();
-            opacitys[index] = final_opacity;
-            //since we found duplicate entry gotta rewirte the whole file so close and reopen.
-            ofstream contribution {contribution_file_name};
-            for (size_t i=0; i<dates.size(); ++i){
-                contribution << dates[i] << '\t' << setprecision(3)<<opacitys[i] << '\n';
-            }
-            return;
-        }
-        else{
-            contribution_file<<todays_date<<'\t'<<setprecision(3)<<final_opacity<<'\n';
-            return;
-        }
+
+        return;
     }
-    catch(exception e){
+    catch(runtime_error e){
         std::cerr<<"Error: "<<e.what()<<'\n';
         return;
     }

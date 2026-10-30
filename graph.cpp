@@ -12,6 +12,7 @@
 #include <vector>
 
 namespace fs = std::filesystem;
+namespace chrono = std::chrono;
 using namespace ftxui;
 
 Color OpacityToColor(double opacity) {
@@ -26,20 +27,18 @@ Color OpacityToColor(double opacity) {
     return Color::RGB(252, 166, 209);
 }
 
-// FIX: change to chrono::year int not needed
-void implementation(const int year, std::vector<Element> &columns,
-                    std::vector<Element> &month) {
-    auto choosen_year = std::chrono::year(year);
+void draw(const int year, std::vector<Element> &columns) {
+    chrono::year choosen_year{year};
 
-    // TODO: no need to create MonthInfo obj just call fun
-    unsigned int jan1 =
-        MonthInfo{choosen_year, std::chrono::January}.start_weekday_num;
-    unsigned int dec31 =
-        MonthInfo{choosen_year, std::chrono::December}.end_weekday_num;
+    unsigned int jan1 = weekdayNo(choosen_year / chrono::January / 1);
+    unsigned int dec31 = weekdayNo(choosen_year / chrono::December / 31);
 
     columns.clear();
-    int wks { 53 };
-    if (choosen_year.is_leap() && jan1 == 6) { wks = 54; }
+    int wks{53};
+    // leap yr which starts at Sat end with Sun has 54 weeks ex: 2028
+    if (choosen_year.is_leap() && jan1 == 6) {
+        wks = 54;
+    }
     for (int week = 0; week < wks; ++week) {
         for (int day = 0; day < 7; ++day) {
             if ((week == 0 && day < jan1) || (week == wks - 1 && day > dec31))
@@ -53,7 +52,7 @@ void implementation(const int year, std::vector<Element> &columns,
             columns.push_back(text(" "));
     }
     // to avoid resizing of buttons row between leap and non-leap yrs.
-    if (wks == 53){
+    if (wks == 53) {
         for (int i = 0; i < 14; ++i)
             columns.push_back(text(" "));
     }
@@ -77,78 +76,53 @@ void implementation(const int year, std::vector<Element> &columns,
     }
     */
 
-    // TODO: since months spacing no longer depend upon yr move them to graph()
-    std::vector<std::string> months{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                                    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-
-    month.clear();
-    for (size_t i = 0; i < months.size(); ++i) {
-        month.push_back(text("  ")); // 2 spaces
-        month.push_back(text(months[i]) | bold | color(Color::Red));
-        month.push_back(text("  ")); // 2 spaces
-        // int weeks = weeksInMonth(choosen_year, std::chrono::month(i + 1));
-        //  if (weeks > 4){
-        //      //std::string space(2 * (weeks - 4), ' ');
-        //      std::string space(" ");
-        //      month.push_back(text(space));
-        //  }
-        if (i % 2 == 0) {
-            std::string space(" ");
-            month.push_back(text(space));
-        }
-        month.push_back(text(" ")); // to match the initial space of grid
-    }
-
-    // FIX: use format string to get file name
     std::string contrib_file_name =
-        "contributions/" + std::to_string(year) + ".txt";
-    std::filesystem::path contrib_file_path{contrib_file_name};
-    std::ifstream file{contrib_file_path};
+        std::format("contributions/{}.txt", choosen_year);
+    std::ifstream file{contrib_file_name};
     if (!file)
-        // TODO: returnt the file name in error msg 2026..
-        throw std::runtime_error("Failed to open 'contribution' file");
+        throw std::runtime_error(
+            std::format("Opening file {}.txt", choosen_year));
 
-    // if the file is empty this read would have failed so
-    bool non_empty_file = !std::filesystem::is_empty(contrib_file_path);
     std::stringstream file_buffer;
     file_buffer << file.rdbuf();
+    // if the file was empty then it would set file_buffer to fail state instead
+    // of setting its eof bit and program would throw error
+    file_buffer.clear();
 
     std::vector<int> week_no;
     std::vector<int> day_no;
     std::vector<double> opacitys;
 
-    // FIX: remove dependency on non_empty_file
-    for (int i = 0; non_empty_file; ++i) {
-        std::chrono::year_month_day ymd;
-        float opacity{0.0};
-        // consume the whitespace because parse() dosen't i.e. the trailing
-        // newline.
-        file_buffer >> std::ws >> std::chrono::parse("%Y/%m/%d", ymd) >>
-            opacity;
+    chrono::year_month_day ymd;
+    float opacity{0.0};
 
-        if (!file_buffer) {
-            if (file_buffer.eof())
-                break;
-            else
-                throw std::runtime_error("Reading file");
-        }
+    // need to consume whitespace because parse() dosen't or else it would cause
+    // error for the trailing newline
+    while (file_buffer >> std::ws >> chrono::parse("%Y/%m/%d", ymd) >>
+           opacity) {
         opacitys.push_back(opacity);
         week_no.push_back(weekNumYear(ymd));
         day_no.push_back(weekdayNo(ymd));
     }
 
+    if (!file_buffer.eof())
+        throw std::runtime_error(
+            std::format("Reading file {}.txt", choosen_year));
+
     for (size_t i = 0; i < week_no.size(); ++i) {
-        // HACK: for range check switch to [] later.
-        columns.at(7 * 2 * week_no[i] + day_no[i]) =
+        columns[7 * 2 * week_no[i] + day_no[i]] =
             text("") | color(OpacityToColor(opacitys[i]));
     }
 }
 
 void Graph(bool interactive) {
     try {
-        const auto today = std::chrono::floor<std::chrono::days>(
-            std::chrono::system_clock::now());
-        std::chrono::year_month_day ymd = today;
+        const auto today =
+            chrono::floor<std::chrono::days>(chrono::system_clock::now());
+        chrono::year_month_day ymd = today;
+
+        // only reason we need to convert year to int is that later we need
+        // to sort file names and we can't we chrono::year there.
         unsigned int int_choosen_year = static_cast<int>(ymd.year());
 
         std::vector<Element> columns;
@@ -162,6 +136,19 @@ void Graph(bool interactive) {
         }
 
         std::vector<Element> month;
+        std::vector<std::string> months{"Jan", "Feb", "Mar", "Apr",
+                                        "May", "Jun", "Jul", "Aug",
+                                        "Sep", "Oct", "Nov", "Dec"};
+        for (size_t i = 0; i < months.size(); ++i) {
+            month.push_back(text("  ")); // 2 spaces
+            month.push_back(text(months[i]) | bold | color(Color::Red));
+            month.push_back(text("  ")); // 2 spaces
+            if (i % 2 == 0) {
+                std::string space(" ");
+                month.push_back(text(space));
+            }
+            month.push_back(text(" ")); // to match the initial space of grid
+        }
 
         if (interactive) {
             std::vector<int> file_names;
@@ -170,7 +157,7 @@ void Graph(bool interactive) {
                     entry.path().extension() == fs::path(".txt")) {
                     try {
                         int x = std::stoi(entry.path().stem());
-                        std::chrono::year yr{x};
+                        chrono::year yr{x};
                         if (yr.ok())
                             file_names.push_back(x);
                     } catch (std::invalid_argument) {
@@ -188,17 +175,16 @@ void Graph(bool interactive) {
 
             auto buttons = Container::Vertical({});
             auto onYearSelected = [&](int file) {
-                implementation(file, columns, month);
+                draw(file, columns);
             };
 
-            // FIX: focus the current yr button on start
             for (int file : file_names) {
                 buttons->Add(Button(
                     std::to_string(file),
                     [&onYearSelected, file] { onYearSelected(file); }, style));
             }
 
-            implementation(file_names[0], columns, month);
+            draw(file_names[0], columns);
             auto renderer = Renderer(buttons, [&] {
                 return hbox({
                     vbox(day) | size(WIDTH, EQUAL, 5),
@@ -213,7 +199,7 @@ void Graph(bool interactive) {
 
             auto screen = App::TerminalOutput();
             renderer |= CatchEvent([&](Event event) {
-                if (event == Event::Character('q')) {
+                if (event == Event::Character('q') || event == Event::Escape) {
                     screen.ExitLoopClosure()();
                     return true;
                 }
@@ -221,7 +207,7 @@ void Graph(bool interactive) {
             });
             screen.Loop(renderer);
         } else {
-            implementation(int_choosen_year, columns, month);
+            draw(int_choosen_year, columns);
             auto frame = hbox({vbox(day) | size(WIDTH, EQUAL, 5),
                                vbox({
                                    hbox(month),

@@ -41,7 +41,7 @@ unsigned int weekdayNo(std::chrono::year_month_day ymd){
 unsigned int weekNumYear(std::chrono::year_month_day ymd){
     /*
     return the week no given date is, jan1 week is week0
-    dec31 is week52/53
+    dec31 is week51/52
     */
     MonthInfo jan{ymd.year(), std::chrono::January};
     std::chrono::sys_days given_date = ymd;

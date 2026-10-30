@@ -27,36 +27,48 @@ Color OpacityToColor(double opacity) {
 }
 
 // FIX: change to chrono::year int not needed
-void implementation(const int &year, std::vector<Elements> &rows,
+void implementation(const int year, std::vector<Element> &columns,
                     std::vector<Element> &month) {
     auto choosen_year = std::chrono::year(year);
 
+    // TODO: no need to create MonthInfo obj just call fun
     unsigned int jan1 =
         MonthInfo{choosen_year, std::chrono::January}.start_weekday_num;
     unsigned int dec31 =
         MonthInfo{choosen_year, std::chrono::December}.end_weekday_num;
 
-    rows.clear();
-    // BUG: the grid is drawn 53 * 7 times, needs fix
-    for (int i = 0; i < 7; ++i) {
-        std::vector<Element> columns;
-        for (int j = 0; j < 53; ++j) {
-            if ((j == 0 && i < jan1) || (j == 52 && i > dec31))
+    columns.clear();
+    for (int week = 0; week < 53; ++week) {
+        for (int day = 0; day < 7; ++day) {
+            if ((week == 0 && day < jan1) || (week == 52 && day > dec31))
                 columns.push_back(text(" "));
             else
                 columns.push_back(
                     text("") |
                     color(Color::RGB(128, 128, 128))); // nerd-font f0c8
-            /*
-            the reason it is box then space is that later when we replace we
-            replace the first match and to replace the box the first match needs
-            to be box not space. while there is a solution even if it was space
-            + block, this is just a lot easier to do.
-            */
-            columns.push_back(text("A")); // gap between the columns
         }
-        rows.push_back(columns);
+        for (int i = 0; i < 7; ++i)
+            columns.push_back(text(" "));
     }
+
+    // since gridbox fill horizontally first then vertical we would get 53 rows
+    // with 7 columns each thus the need to use vflow.
+    /*
+    weeks.clear();
+    for (int week = 0; week < 53; ++week) {
+        std::vector<Element> days;
+        for (int day = 0; day < 7; ++day) {
+            if ((week == 0 && day < jan1) || (week == 52 && day > dec31))
+                days.push_back(text(" "));
+            else
+                days.push_back(
+                    text("") |
+                    color(Color::RGB(128, 128, 128))); // nerd-font f0c8
+            days.push_back(text("A"));
+        }
+        weeks.push_back(days);
+    }
+    */
 
     std::vector<std::string> months{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
@@ -66,12 +78,12 @@ void implementation(const int &year, std::vector<Elements> &rows,
         month.push_back(text("  ")); // 2 spaces
         month.push_back(text(months[i]) | bold | color(Color::Red));
         month.push_back(text("  ")); // 2 spaces
-        int weeks = weeksInMonth(choosen_year, std::chrono::month(i + 1));
-        // if (weeks > 4){
-        //     //std::string space(2 * (weeks - 4), ' ');
-        //     std::string space(" ");
-        //     month.push_back(text(space));
-        // }
+        // int weeks = weeksInMonth(choosen_year, std::chrono::month(i + 1));
+        //  if (weeks > 4){
+        //      //std::string space(2 * (weeks - 4), ' ');
+        //      std::string space(" ");
+        //      month.push_back(text(space));
+        //  }
         if (i % 2 == 0) {
             std::string space(" ");
             month.push_back(text(space));
@@ -89,19 +101,19 @@ void implementation(const int &year, std::vector<Elements> &rows,
         throw std::runtime_error("Failed to open 'contribution' file");
 
     // if the file is empty this read would have failed so
-    bool non_empty_file = !std::filesystem::is_empty(contrib_file_path)
-                              std::stringstream file_buffer;
+    bool non_empty_file = !std::filesystem::is_empty(contrib_file_path);
+    std::stringstream file_buffer;
     file_buffer << file.rdbuf();
 
-    std::vector<int> weeks;
+    std::vector<int> week_no;
     std::vector<int> day_no;
-    std::vector<float> opacitys;
+    std::vector<double> opacitys;
 
+    // FIX: remove dependency on non_empty_file
     for (int i = 0; non_empty_file; ++i) {
         std::chrono::year_month_day ymd;
         float opacity{0.0};
-        // consume the whitespace because parse() dosen't. that is the trailing
-        // newline.
+        // consume the whitespace because parse() dosen't i.e. the trailing newline.
         file_buffer >> std::ws >> std::chrono::parse("%Y/%m/%d", ymd) >>
             opacity;
 
@@ -111,15 +123,14 @@ void implementation(const int &year, std::vector<Elements> &rows,
             else
                 throw std::runtime_error("Reading file");
         }
-        auto week_no = weekNumYear(ymd);
-        auto day = weekdayNo(ymd);
         opacitys.push_back(opacity);
-        weeks.push_back(week_no);
-        day_no.push_back(day);
+        week_no.push_back(weekNumYear(ymd));
+        day_no.push_back(weekdayNo(ymd));
     }
 
-    for (size_t i = 0; i < weeks.size(); ++i) {
-        rows[day_no[i]][weeks[i] * 2] =
+    for (size_t i = 0; i < week_no.size(); ++i) {
+        // HACK: for range check switch to [] later.
+        columns.at(7 * 2 * week_no[i] + day_no[i]) =
             text("") | color(OpacityToColor(opacitys[i]));
     }
 }
@@ -131,7 +142,7 @@ void Graph(bool interactive) {
         std::chrono::year_month_day ymd = today;
         unsigned int int_choosen_year = static_cast<int>(ymd.year());
 
-        std::vector<Elements> rows;
+        std::vector<Element> columns;
 
         std::vector<Element> day;
         // initial space it will be a vbox item
@@ -143,13 +154,11 @@ void Graph(bool interactive) {
 
         std::vector<Element> month;
 
-        implementation(int_choosen_year, rows, month);
-
-        fs::path base = "contributions";
+        implementation(int_choosen_year, columns, month);
 
         if (interactive) {
             std::vector<int> file_names;
-            for (const auto &entry : fs::directory_iterator(base)) {
+            for (const auto &entry : fs::directory_iterator("contributions")) {
                 if (entry.is_regular_file() &&
                     entry.path().extension() == fs::path(".txt")) {
                     try {
@@ -173,7 +182,7 @@ void Graph(bool interactive) {
             auto buttons = Container::Vertical({});
             auto onYearSelected = [&](int file) {
                 int_choosen_year = file;
-                implementation(int_choosen_year, rows, month);
+                implementation(int_choosen_year, columns, month);
             };
 
             for (int file : file_names) {
@@ -187,7 +196,7 @@ void Graph(bool interactive) {
                     vbox(day) | size(WIDTH, EQUAL, 5),
                     vbox({
                         hbox(month),
-                        gridbox(rows),
+                        vflow(columns) | size(HEIGHT, EQUAL, 7),
                     }),
                     buttons->Render() | vscroll_indicator | frame |
                         size(HEIGHT, LESS_THAN, 8),
@@ -204,12 +213,12 @@ void Graph(bool interactive) {
             });
             screen.Loop(renderer);
         } else {
-            auto frame = hbox(
-                {vbox(day) | size(WIDTH, EQUAL, 5), vbox({
-                                                        hbox(month),
-                                                        gridbox(rows),
-                                                    }) | hscroll_indicator |
-                                                        xframe});
+            auto frame = hbox({vbox(day) | size(WIDTH, EQUAL, 5),
+                               vbox({
+                                   hbox(month),
+                                   vflow(columns) | size(HEIGHT, EQUAL, 7),
+                               }) | hscroll_indicator |
+                                   xframe});
 
             auto screen = Screen::Create(Dimension::Fit(frame));
             Render(screen, frame);

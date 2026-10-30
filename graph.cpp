@@ -38,9 +38,11 @@ void implementation(const int year, std::vector<Element> &columns,
         MonthInfo{choosen_year, std::chrono::December}.end_weekday_num;
 
     columns.clear();
-    for (int week = 0; week < 53; ++week) {
+    int wks { 53 };
+    if (choosen_year.is_leap() && jan1 == 6) { wks = 54; }
+    for (int week = 0; week < wks; ++week) {
         for (int day = 0; day < 7; ++day) {
-            if ((week == 0 && day < jan1) || (week == 52 && day > dec31))
+            if ((week == 0 && day < jan1) || (week == wks - 1 && day > dec31))
                 columns.push_back(text(" "));
             else
                 columns.push_back(
@@ -48,6 +50,11 @@ void implementation(const int year, std::vector<Element> &columns,
                     color(Color::RGB(128, 128, 128))); // nerd-font f0c8
         }
         for (int i = 0; i < 7; ++i)
+            columns.push_back(text(" "));
+    }
+    // to avoid resizing of buttons row between leap and non-leap yrs.
+    if (wks == 53){
+        for (int i = 0; i < 14; ++i)
             columns.push_back(text(" "));
     }
 
@@ -113,7 +120,8 @@ void implementation(const int year, std::vector<Element> &columns,
     for (int i = 0; non_empty_file; ++i) {
         std::chrono::year_month_day ymd;
         float opacity{0.0};
-        // consume the whitespace because parse() dosen't i.e. the trailing newline.
+        // consume the whitespace because parse() dosen't i.e. the trailing
+        // newline.
         file_buffer >> std::ws >> std::chrono::parse("%Y/%m/%d", ymd) >>
             opacity;
 

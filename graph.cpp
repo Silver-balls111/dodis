@@ -77,6 +77,7 @@ void implementation(const int year, std::vector<Element> &columns,
     }
     */
 
+    // TODO: since months spacing no longer depend upon yr move them to graph()
     std::vector<std::string> months{"Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                     "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
 
@@ -162,8 +163,6 @@ void Graph(bool interactive) {
 
         std::vector<Element> month;
 
-        implementation(int_choosen_year, columns, month);
-
         if (interactive) {
             std::vector<int> file_names;
             for (const auto &entry : fs::directory_iterator("contributions")) {
@@ -189,16 +188,17 @@ void Graph(bool interactive) {
 
             auto buttons = Container::Vertical({});
             auto onYearSelected = [&](int file) {
-                int_choosen_year = file;
-                implementation(int_choosen_year, columns, month);
+                implementation(file, columns, month);
             };
 
+            // FIX: focus the current yr button on start
             for (int file : file_names) {
                 buttons->Add(Button(
                     std::to_string(file),
                     [&onYearSelected, file] { onYearSelected(file); }, style));
             }
 
+            implementation(file_names[0], columns, month);
             auto renderer = Renderer(buttons, [&] {
                 return hbox({
                     vbox(day) | size(WIDTH, EQUAL, 5),
@@ -221,6 +221,7 @@ void Graph(bool interactive) {
             });
             screen.Loop(renderer);
         } else {
+            implementation(int_choosen_year, columns, month);
             auto frame = hbox({vbox(day) | size(WIDTH, EQUAL, 5),
                                vbox({
                                    hbox(month),

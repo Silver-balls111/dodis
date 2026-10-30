@@ -28,8 +28,8 @@ Color OpacityToColor(double opacity) {
 }
 
 void draw(const int year, std::vector<Element> &columns) {
-    chrono::year choosen_year{year};
 
+    chrono::year choosen_year{year};
     unsigned int jan1 = weekdayNo(choosen_year / chrono::January / 1);
     unsigned int dec31 = weekdayNo(choosen_year / chrono::December / 31);
 
@@ -174,9 +174,7 @@ void Graph(bool interactive) {
                                        Color::Default, Color::OrangeRed1);
 
             auto buttons = Container::Vertical({});
-            auto onYearSelected = [&](int file) {
-                draw(file, columns);
-            };
+            auto onYearSelected = [&](int file) { draw(file, columns); };
 
             for (int file : file_names) {
                 buttons->Add(Button(
@@ -184,16 +182,46 @@ void Graph(bool interactive) {
                     [&onYearSelected, file] { onYearSelected(file); }, style));
             }
 
-            draw(file_names[0], columns);
-            auto renderer = Renderer(buttons, [&] {
-                return hbox({
-                    vbox(day) | size(WIDTH, EQUAL, 5),
-                    vbox({
-                        hbox(month),
-                        vflow(columns) | size(HEIGHT, EQUAL, 7),
-                    }),
-                    buttons->Render() | vscroll_indicator | frame |
+            float scroll_x = 0.1f;
+            float scroll_y = 0.1f;
+
+            auto content = Renderer([&] {
+                return hbox({vbox(day) | size(WIDTH, EQUAL, 5),
+                             vbox({
+                                 hbox(month),
+                                 vflow(columns) | size(HEIGHT, EQUAL, 7),
+                             })});
+            });
+
+            auto scrollable_content = Renderer(content, [&] {
+                return content->Render() |
+                       focusPositionRelative(scroll_x, scroll_y) | xframe | flex;
+            });
+            
+            SliderOption<float> option_x;
+            option_x.value = &scroll_x;
+            option_x.min = 0.f;
+            option_x.max = 1.f;
+            option_x.increment = 0.1f;
+            option_x.direction = Direction::Right;
+            option_x.color_active = Color::Blue;
+            option_x.color_inactive = Color::BlueLight;
+
+            auto scrollbar_x = Slider(option_x);
+
+            auto whole = Container::Horizontal({
+                Container::Vertical({
+                    scrollable_content,
+                    scrollbar_x,
+                }) | flex,
+                buttons | vscroll_indicator | yframe |
                         size(HEIGHT, LESS_THAN, 8),
+            });
+
+            draw(file_names[0], columns);
+            auto renderer = Renderer(whole, [&] {
+                return hbox({
+                    whole->Render(),
                 });
             });
 

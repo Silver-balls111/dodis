@@ -27,8 +27,8 @@ Color OpacityToColor(double opacity) {
     return Color::RGB(252, 166, 209);
 }
 
-Component makeGrid(std::vector<Component> &columns) {
-    auto horC = Container::Horizontal({});
+void rebuildGrid(Component &horC, std::vector<Component> &columns) {
+    horC->DetachAllChildren();
     for (int weeks = 0; weeks < 2 * 54; ++weeks) {
         auto verC = Container::Vertical({});
         for (int day = 0; day < 7; ++day) {
@@ -36,7 +36,6 @@ Component makeGrid(std::vector<Component> &columns) {
         }
         horC->Add(verC);
     }
-    return horC;
 }
 
 Component blank() {
@@ -169,12 +168,13 @@ void Graph(bool interactive) {
 
             std::string ddate = "initial";
 
+            auto horC = Container::Horizontal({});
             draw(file_names[0], columns, ddate);
-            auto horC = makeGrid(columns);
+            rebuildGrid(horC, columns);
 
             auto onYearSelected = [&](int file) {
                 draw(file, columns, ddate);
-                horC = makeGrid(columns);
+                rebuildGrid(horC, columns);
             };
 
             for (int file : file_names) {
@@ -208,16 +208,21 @@ void Graph(bool interactive) {
                 {Container::Vertical({dayC}),
                  Container::Vertical({monthC, horC | size(HEIGHT, EQUAL, 7)})});
 
+            // can't simply apply focusPositionRelative to content it must be rendered first
+            // then only panning will work don't know why though.
+            auto scroller = Renderer(content, [&] {
+                return content->Render() |
+                       focusPositionRelative(scroll_x, scroll_y) | frame | flex;
+            });
             auto screen = App::TerminalOutput();
             auto whole = Container::Horizontal({
-                Container::Vertical(
-                    {content | focusPositionRelative(scroll_x, scroll_y) |
-                         frame | flex,
-                     scrollbar_x | Maybe([&] { return screen.dimx() < 120; }),
-                     date_box}) |
-                    flex,
-                buttons | vscroll_indicator | yframe |
-                    size(HEIGHT, LESS_THAN, 8),
+                Container::Vertical({
+                    scroller, 
+                    scrollbar_x | Maybe([&] { return screen.dimx() < 120; }),
+                    date_box
+                }) | flex,
+                buttons | vscroll_indicator  | yframe | 
+                    size(HEIGHT, LESS_THAN, 8) 
             });
 
             auto renderer = Renderer(whole, [&] {

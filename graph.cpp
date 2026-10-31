@@ -195,27 +195,38 @@ void Graph(bool interactive) {
 
             auto scrollable_content = Renderer(content, [&] {
                 return content->Render() |
-                       focusPositionRelative(scroll_x, scroll_y) | xframe | flex;
+                       focusPositionRelative(scroll_x, scroll_y) | frame | flex;
             });
-            
+
             SliderOption<float> option_x;
             option_x.value = &scroll_x;
             option_x.min = 0.f;
             option_x.max = 1.f;
             option_x.increment = 0.1f;
+            option_x.label = " ";
             option_x.direction = Direction::Right;
             option_x.color_active = Color::Blue;
             option_x.color_inactive = Color::BlueLight;
 
+            // NOTE: option.lable is only available in my fork for now
+            // auto scrollbar_x = Slider("", option_x);
             auto scrollbar_x = Slider(option_x);
 
+            /*
+            here we had to use screen.dimx() instead of Terminal::Size().dimx
+            because term size only reports the initial size where as screen size
+            is dynamic. https://github.com/ArthurSonzogni/FTXUI/discussions/1047
+            dimx/y is in terms of characters, do / 10 on pixels
+            */
+            // BUG: buttons are not focused on start
+            auto screen = App::TerminalOutput();
             auto whole = Container::Horizontal({
                 Container::Vertical({
                     scrollable_content,
-                    scrollbar_x,
+                    scrollbar_x | Maybe([&] { return screen.dimx() < 120; }),
                 }) | flex,
                 buttons | vscroll_indicator | yframe |
-                        size(HEIGHT, LESS_THAN, 8),
+                    size(HEIGHT, LESS_THAN, 8),
             });
 
             draw(file_names[0], columns);
@@ -225,7 +236,6 @@ void Graph(bool interactive) {
                 });
             });
 
-            auto screen = App::TerminalOutput();
             renderer |= CatchEvent([&](Event event) {
                 if (event == Event::Character('q') || event == Event::Escape) {
                     screen.ExitLoopClosure()();

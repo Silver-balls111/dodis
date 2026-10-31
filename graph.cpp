@@ -27,7 +27,29 @@ Color OpacityToColor(double opacity) {
     return Color::RGB(252, 166, 209);
 }
 
-void draw(const int year, std::vector<Element> &columns) {
+Component makeGrid(std::vector<Component> &columns) {
+    auto horC = Container::Horizontal({});
+    for (int weeks = 0; weeks < 2 * 54; ++weeks) {
+        auto verC = Container::Vertical({});
+        for (int day = 0; day < 7; ++day) {
+            verC->Add(columns[7 * weeks + day]);
+        }
+        horC->Add(verC);
+    }
+    return horC;
+}
+
+Component blank() {
+    return Renderer([] { return text(" "); });
+}
+
+Component hovb(std::string &ddate, Color blockc = Color::RGB(128, 128, 128)) {
+    auto block = Renderer([=] { return text("") | color(blockc); });
+
+    return Hoverable(block, [&] { ddate = "0/0/0"; }, [&] { ddate = "empty"; });
+}
+
+void draw(const int year, std::vector<Component> &columns, std::string &ddate) {
 
     chrono::year choosen_year{year};
     unsigned int jan1 = weekdayNo(choosen_year / chrono::January / 1);
@@ -35,46 +57,23 @@ void draw(const int year, std::vector<Element> &columns) {
 
     columns.clear();
     int wks{53};
-    // leap yr which starts at Sat end with Sun has 54 weeks ex: 2028
     if (choosen_year.is_leap() && jan1 == 6) {
         wks = 54;
     }
     for (int week = 0; week < wks; ++week) {
         for (int day = 0; day < 7; ++day) {
             if ((week == 0 && day < jan1) || (week == wks - 1 && day > dec31))
-                columns.push_back(text(" "));
+                columns.push_back(blank());
             else
-                columns.push_back(
-                    text("") |
-                    color(Color::RGB(128, 128, 128))); // nerd-font f0c8
+                columns.push_back(hovb(ddate));
         }
         for (int i = 0; i < 7; ++i)
-            columns.push_back(text(" "));
+            columns.push_back(blank());
     }
-    // to avoid resizing of buttons row between leap and non-leap yrs.
     if (wks == 53) {
         for (int i = 0; i < 14; ++i)
-            columns.push_back(text(" "));
+            columns.push_back(blank());
     }
-
-    // since gridbox fill horizontally first then vertical we would get 53 rows
-    // with 7 columns each thus the need to use vflow.
-    /*
-    weeks.clear();
-    for (int week = 0; week < 53; ++week) {
-        std::vector<Element> days;
-        for (int day = 0; day < 7; ++day) {
-            if ((week == 0 && day < jan1) || (week == 52 && day > dec31))
-                days.push_back(text(" "));
-            else
-                days.push_back(
-                    text("") |
-                    color(Color::RGB(128, 128, 128))); // nerd-font f0c8
-            days.push_back(text("A"));
-        }
-        weeks.push_back(days);
-    }
-    */
 
     std::string contrib_file_name =
         std::format("contributions/{}.txt", choosen_year);
@@ -85,8 +84,6 @@ void draw(const int year, std::vector<Element> &columns) {
 
     std::stringstream file_buffer;
     file_buffer << file.rdbuf();
-    // if the file was empty then it would set file_buffer to fail state instead
-    // of setting its eof bit and program would throw error
     file_buffer.clear();
 
     std::vector<int> week_no;
@@ -96,8 +93,6 @@ void draw(const int year, std::vector<Element> &columns) {
     chrono::year_month_day ymd;
     float opacity{0.0};
 
-    // need to consume whitespace because parse() dosen't or else it would cause
-    // error for the trailing newline
     while (file_buffer >> std::ws >> chrono::parse("%Y/%m/%d", ymd) >>
            opacity) {
         opacitys.push_back(opacity);
@@ -111,11 +106,9 @@ void draw(const int year, std::vector<Element> &columns) {
 
     for (size_t i = 0; i < week_no.size(); ++i) {
         columns[7 * 2 * week_no[i] + day_no[i]] =
-            text("") | color(OpacityToColor(opacitys[i]));
+            hovb(ddate, OpacityToColor(opacitys[i]));
     }
 }
-
-// tile-hover branch first commit test fuck my config 
 
 void Graph(bool interactive) {
     try {
@@ -123,14 +116,11 @@ void Graph(bool interactive) {
             chrono::floor<std::chrono::days>(chrono::system_clock::now());
         chrono::year_month_day ymd = today;
 
-        // only reason we need to convert year to int is that later we need
-        // to sort file names and we can't we chrono::year there.
         unsigned int int_choosen_year = static_cast<int>(ymd.year());
 
-        std::vector<Element> columns;
+        std::vector<Component> columns;
 
         std::vector<Element> day;
-        // initial space it will be a vbox item
         std::vector<std::string> days{"   ", "Sun", "Mon", "Tue",
                                       "Wed", "Thu", "Fri", "Sat"};
         for (auto x : days) {
@@ -176,7 +166,16 @@ void Graph(bool interactive) {
                                        Color::Default, Color::OrangeRed1);
 
             auto buttons = Container::Vertical({});
-            auto onYearSelected = [&](int file) { draw(file, columns); };
+
+            std::string ddate = "initial";
+
+            draw(file_names[0], columns, ddate);
+            auto horC = makeGrid(columns);
+
+            auto onYearSelected = [&](int file) {
+                draw(file, columns, ddate);
+                horC = makeGrid(columns);
+            };
 
             for (int file : file_names) {
                 buttons->Add(Button(
@@ -186,19 +185,6 @@ void Graph(bool interactive) {
 
             float scroll_x = 0.1f;
             float scroll_y = 0.1f;
-
-            auto content = Renderer([&] {
-                return hbox({vbox(day) | size(WIDTH, EQUAL, 5),
-                             vbox({
-                                 hbox(month),
-                                 vflow(columns) | size(HEIGHT, EQUAL, 7),
-                             })});
-            });
-
-            auto scrollable_content = Renderer(content, [&] {
-                return content->Render() |
-                       focusPositionRelative(scroll_x, scroll_y) | frame | flex;
-            });
 
             SliderOption<float> option_x;
             option_x.value = &scroll_x;
@@ -210,28 +196,30 @@ void Graph(bool interactive) {
             option_x.color_active = Color::Blue;
             option_x.color_inactive = Color::BlueLight;
 
-            // NOTE: option.lable is only available in my fork for now
-            // auto scrollbar_x = Slider("", option_x);
             auto scrollbar_x = Slider(option_x);
 
-            /*
-            here we had to use screen.dimx() instead of Terminal::Size().dimx
-            because term size only reports the initial size where as screen size
-            is dynamic. https://github.com/ArthurSonzogni/FTXUI/discussions/1047
-            dimx/y is in terms of characters, do / 10 on pixels
-            */
-            // BUG: buttons are not focused on start
+            auto dayC =
+                Renderer([&] { return vbox(day) | size(WIDTH, EQUAL, 5); });
+            auto monthC = Renderer([&] { return hbox(month); });
+            auto date_box =
+                Renderer([&] { return dbox({text(ddate)}) | borderRounded; });
+
+            auto content = Container::Horizontal(
+                {Container::Vertical({dayC}),
+                 Container::Vertical({monthC, horC | size(HEIGHT, EQUAL, 7)})});
+
             auto screen = App::TerminalOutput();
             auto whole = Container::Horizontal({
-                Container::Vertical({
-                    scrollable_content,
-                    scrollbar_x | Maybe([&] { return screen.dimx() < 120; }),
-                }) | flex,
+                Container::Vertical(
+                    {content | focusPositionRelative(scroll_x, scroll_y) |
+                         frame | flex,
+                     scrollbar_x | Maybe([&] { return screen.dimx() < 120; }),
+                     date_box}) |
+                    flex,
                 buttons | vscroll_indicator | yframe |
                     size(HEIGHT, LESS_THAN, 8),
             });
 
-            draw(file_names[0], columns);
             auto renderer = Renderer(whole, [&] {
                 return hbox({
                     whole->Render(),
@@ -247,11 +235,11 @@ void Graph(bool interactive) {
             });
             screen.Loop(renderer);
         } else {
-            draw(int_choosen_year, columns);
+            // draw(int_choosen_year, columns);
             auto frame = hbox({vbox(day) | size(WIDTH, EQUAL, 5),
                                vbox({
                                    hbox(month),
-                                   vflow(columns) | size(HEIGHT, EQUAL, 7),
+                                   // vflow(columns) | size(HEIGHT, EQUAL, 7),
                                }) | hscroll_indicator |
                                    xframe});
 

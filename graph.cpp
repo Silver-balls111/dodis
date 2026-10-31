@@ -1,192 +1,264 @@
+#include "monthInfo.hpp"
 #include <chrono>
+#include <filesystem>
+#include <fstream>
 #include <ftxui/dom/elements.hpp>
+#include <ftxui/ftxui.hpp>
 #include <ftxui/screen/color_info.hpp>
 #include <iostream>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <vector>
-#include <sstream>
-#include <fstream>
-#include <filesystem>
-#include <ftxui/ftxui.hpp>
-#include <stdexcept>
-#include "monthInfo.hpp"
 
 namespace fs = std::filesystem;
+namespace chrono = std::chrono;
 using namespace ftxui;
 
 Color OpacityToColor(double opacity) {
-    if (opacity <= 0.25) return Color::RGB(69, 52, 77);
-    if (opacity <= 0.50) return Color::RGB(138, 95, 127);
-    if (opacity <= 0.75) return Color::RGB(195, 131, 168);
+    if (opacity == 0)
+        return Color::RGB(128, 128, 128);
+    if (opacity <= 0.25)
+        return Color::RGB(69, 52, 77);
+    if (opacity <= 0.50)
+        return Color::RGB(138, 95, 127);
+    if (opacity <= 0.75)
+        return Color::RGB(195, 131, 168);
     return Color::RGB(252, 166, 209);
 }
 
-void implementation(const int& year,std::vector<Elements>& rows, std::vector<Element>& month){
-    std::string contribution_file_name = std::to_string(year) + ".txt";
-    auto choosen_year = std::chrono::year(year);
+void draw(const int year, std::vector<Element> &columns) {
 
-    unsigned int jan1 = MonthInfo{choosen_year, std::chrono::January}.start_weekday_no;
-    unsigned int dec31 = MonthInfo{choosen_year, std::chrono::December}.end_weekday_no;
+    chrono::year choosen_year{year};
+    unsigned int jan1 = weekdayNo(choosen_year / chrono::January / 1);
+    unsigned int dec31 = weekdayNo(choosen_year / chrono::December / 31);
 
-    rows.clear();
-    for(int i=0; i<7; ++i){
-        std::vector<Element> columns;
-        for(int j=0; j<53; ++j){
-            if ((j == 0 && i < jan1) || (j == 52 && i > dec31))
+    columns.clear();
+    int wks{53};
+    // leap yr which starts at Sat end with Sun has 54 weeks ex: 2028
+    if (choosen_year.is_leap() && jan1 == 6) {
+        wks = 54;
+    }
+    for (int week = 0; week < wks; ++week) {
+        for (int day = 0; day < 7; ++day) {
+            if ((week == 0 && day < jan1) || (week == wks - 1 && day > dec31))
                 columns.push_back(text(" "));
             else
-                columns.push_back(text("") | color(Color::RGB(128, 128, 128)) );   //nerd-font f0c8
-            /* the reason it is box then space is that later when we replace we replace the first match
-            * and to replace the box the first match needs to be box not space. while there is a solution
-            * even if it was space + block, this is just a lot easier to do.
-            */
+                columns.push_back(
+                    text("") |
+                    color(Color::RGB(128, 128, 128))); // nerd-font f0c8
+        }
+        for (int i = 0; i < 7; ++i)
             columns.push_back(text(" "));
-        }
-        rows.push_back(columns);
+    }
+    // to avoid resizing of buttons row between leap and non-leap yrs.
+    if (wks == 53) {
+        for (int i = 0; i < 14; ++i)
+            columns.push_back(text(" "));
     }
 
-    std::vector<std::string> months {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul",
-        "Aug", "Sep", "Oct", "Nov", "Dec"};
-
-    month.clear();
-    for (size_t i=0; i<months.size(); ++i){
-        month.push_back(text(months[i]) | bold | color(Color::Red));
-        month.push_back(text("    "));      //4 spaces
-        int weeks = weeksInMonth(choosen_year, std::chrono::month(i+1));
-        if (weeks > 4){
-            //std::string space(weeks - 4, ' ');
-            std::string space(" ");
-            month.push_back(text(space));
+    // since gridbox fill horizontally first then vertical we would get 53 rows
+    // with 7 columns each thus the need to use vflow.
+    /*
+    weeks.clear();
+    for (int week = 0; week < 53; ++week) {
+        std::vector<Element> days;
+        for (int day = 0; day < 7; ++day) {
+            if ((week == 0 && day < jan1) || (week == 52 && day > dec31))
+                days.push_back(text(" "));
+            else
+                days.push_back(
+                    text("") |
+                    color(Color::RGB(128, 128, 128))); // nerd-font f0c8
+            days.push_back(text("A"));
         }
-        month.push_back(text(" ")); //to match the initial space of grid
+        weeks.push_back(days);
     }
+    */
 
-    fs::path base = "contributions";
-    std::ifstream file {base / contribution_file_name};
+    std::string contrib_file_name =
+        std::format("contributions/{}.txt", choosen_year);
+    std::ifstream file{contrib_file_name};
     if (!file)
-        throw std::runtime_error("Failed to open 'contribution' file");
+        throw std::runtime_error(
+            std::format("Opening file {}.txt", choosen_year));
 
     std::stringstream file_buffer;
-    bool non_empty_file {true};
     file_buffer << file.rdbuf();
-    //if the file is empty this read would have failed so
-    if(!file_buffer)
-        non_empty_file = false;
+    // if the file was empty then it would set file_buffer to fail state instead
+    // of setting its eof bit and program would throw error
+    file_buffer.clear();
 
-    std::vector<int> weeks;
+    std::vector<int> week_no;
     std::vector<int> day_no;
-    std::vector<float> opacitys;
+    std::vector<double> opacitys;
 
-    for(int i=0;non_empty_file;++i){
-        std::chrono::year_month_day ymd;
-        float opacity{0.0};
-        //consume the whitespace because parse() dosen't. that is the trailing newline.
-        file_buffer >> std::ws >> std::chrono::parse("%Y/%m/%d", ymd)>> opacity;
+    chrono::year_month_day ymd;
+    float opacity{0.0};
 
-        if(!file_buffer){
-            if(file_buffer.eof())
-                break;
-            else
-                throw std::runtime_error("Reading file");
-        }
-        auto week_no = weekNo(ymd);
-        auto day = weekdayNo(ymd);
+    // need to consume whitespace because parse() dosen't or else it would cause
+    // error for the trailing newline
+    while (file_buffer >> std::ws >> chrono::parse("%Y/%m/%d", ymd) >>
+           opacity) {
         opacitys.push_back(opacity);
-        weeks.push_back(week_no);
-        day_no.push_back(day);
+        week_no.push_back(weekNumYear(ymd));
+        day_no.push_back(weekdayNo(ymd));
     }
 
-    for(size_t i=0; i<weeks.size(); ++i){
-        rows[day_no[i]][weeks[i] * 2] = text("") | color(OpacityToColor(opacitys[i]));
+    if (!file_buffer.eof())
+        throw std::runtime_error(
+            std::format("Reading file {}.txt", choosen_year));
+
+    for (size_t i = 0; i < week_no.size(); ++i) {
+        columns[7 * 2 * week_no[i] + day_no[i]] =
+            text("") | color(OpacityToColor(opacitys[i]));
     }
 }
 
-void Graph(bool interactive){
-    try{
-        const auto today = std::chrono::floor<std::chrono::days>(std::chrono::system_clock::now());
-        std::chrono::year_month_day ymd = today;
+void Graph(bool interactive) {
+    try {
+        const auto today =
+            chrono::floor<std::chrono::days>(chrono::system_clock::now());
+        chrono::year_month_day ymd = today;
+
+        // only reason we need to convert year to int is that later we need
+        // to sort file names and we can't we chrono::year there.
         unsigned int int_choosen_year = static_cast<int>(ymd.year());
 
-        std::vector<Elements> rows;
+        std::vector<Element> columns;
 
         std::vector<Element> day;
-        std::vector<std::string> days {"   ", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"}; //initial space it will be a vbox item
-        for(auto x: days){
+        // initial space it will be a vbox item
+        std::vector<std::string> days{"   ", "Sun", "Mon", "Tue",
+                                      "Wed", "Thu", "Fri", "Sat"};
+        for (auto x : days) {
             day.push_back(text(x) | bold | color(Color::Red));
         }
 
         std::vector<Element> month;
+        std::vector<std::string> months{"Jan", "Feb", "Mar", "Apr",
+                                        "May", "Jun", "Jul", "Aug",
+                                        "Sep", "Oct", "Nov", "Dec"};
+        for (size_t i = 0; i < months.size(); ++i) {
+            month.push_back(text("  ")); // 2 spaces
+            month.push_back(text(months[i]) | bold | color(Color::Red));
+            month.push_back(text("  ")); // 2 spaces
+            if (i % 2 == 0) {
+                std::string space(" ");
+                month.push_back(text(space));
+            }
+            month.push_back(text(" ")); // to match the initial space of grid
+        }
 
-        implementation(int_choosen_year, rows, month);
-
-        fs::path base = "contributions";
-
-        if (interactive){
+        if (interactive) {
             std::vector<int> file_names;
-            for(const auto& entry: fs::directory_iterator(base)){
-                if (entry.is_regular_file() && entry.path().extension() == fs::path(".txt")){
-                    try{
+            for (const auto &entry : fs::directory_iterator("contributions")) {
+                if (entry.is_regular_file() &&
+                    entry.path().extension() == fs::path(".txt")) {
+                    try {
                         int x = std::stoi(entry.path().stem());
-                        std::chrono::year yr{x};
-                        if(yr.ok())
+                        chrono::year yr{x};
+                        if (yr.ok())
                             file_names.push_back(x);
+                    } catch (std::invalid_argument) {
+                        continue;
+                    } catch (std::out_of_range) {
+                        continue;
                     }
-                    catch(std::invalid_argument){ continue;}
-                    catch(std::out_of_range){ continue; }
                 }
             }
-            std::ranges::sort(file_names, std::greater<int>());         //descending order
-            auto style = ButtonOption::Animated(Color::Default, Color::Grey62,
-                                                Color::Default, Color::OrangeRed1);
+            std::ranges::sort(file_names,
+                              std::greater<int>()); // descending order
+            auto style =
+                ButtonOption::Animated(Color::Default, Color::Grey62,
+                                       Color::Default, Color::OrangeRed1);
 
             auto buttons = Container::Vertical({});
-            auto onYearSelected = [&](int file) {
-                int_choosen_year = file;
-                implementation(int_choosen_year, rows, month);
-            };
+            auto onYearSelected = [&](int file) { draw(file, columns); };
 
             for (int file : file_names) {
-                buttons->Add(Button(std::to_string(file), [&onYearSelected, file] { onYearSelected(file); }, style));
+                buttons->Add(Button(
+                    std::to_string(file),
+                    [&onYearSelected, file] { onYearSelected(file); }, style));
             }
 
-            auto renderer = Renderer(buttons, [&]{
+            float scroll_x = 0.1f;
+            float scroll_y = 0.1f;
+
+            auto content = Renderer([&] {
+                return hbox({vbox(day) | size(WIDTH, EQUAL, 5),
+                             vbox({
+                                 hbox(month),
+                                 vflow(columns) | size(HEIGHT, EQUAL, 7),
+                             })});
+            });
+
+            auto scrollable_content = Renderer(content, [&] {
+                return content->Render() |
+                       focusPositionRelative(scroll_x, scroll_y) | frame | flex;
+            });
+
+            SliderOption<float> option_x;
+            option_x.value = &scroll_x;
+            option_x.min = 0.f;
+            option_x.max = 1.f;
+            option_x.increment = 0.1f;
+            option_x.label = " ";
+            option_x.direction = Direction::Right;
+            option_x.color_active = Color::Blue;
+            option_x.color_inactive = Color::BlueLight;
+
+            // NOTE: option.lable is only available in my fork for now
+            // auto scrollbar_x = Slider("", option_x);
+            auto scrollbar_x = Slider(option_x);
+
+            /*
+            here we had to use screen.dimx() instead of Terminal::Size().dimx
+            because term size only reports the initial size where as screen size
+            is dynamic. https://github.com/ArthurSonzogni/FTXUI/discussions/1047
+            dimx/y is in terms of characters, do / 10 on pixels
+            */
+            // BUG: buttons are not focused on start
+            auto screen = App::TerminalOutput();
+            auto whole = Container::Horizontal({
+                Container::Vertical({
+                    scrollable_content,
+                    scrollbar_x | Maybe([&] { return screen.dimx() < 120; }),
+                }) | flex,
+                buttons | vscroll_indicator | yframe |
+                    size(HEIGHT, LESS_THAN, 8),
+            });
+
+            draw(file_names[0], columns);
+            auto renderer = Renderer(whole, [&] {
                 return hbox({
-                    vbox(day) | size(WIDTH, EQUAL, 5),
-                    vbox({
-                        hbox(month),
-                        gridbox(rows),
-                    }),
-                    buttons->Render() | vscroll_indicator | frame |
-                         size(HEIGHT, LESS_THAN, 8),
+                    whole->Render(),
                 });
             });
 
-            auto screen = App::TerminalOutput();
             renderer |= CatchEvent([&](Event event) {
-              if (event == Event::Character('q')) {
-                screen.ExitLoopClosure()();
-                return true;
-              }
-              return false;
+                if (event == Event::Character('q') || event == Event::Escape) {
+                    screen.ExitLoopClosure()();
+                    return true;
+                }
+                return false;
             });
             screen.Loop(renderer);
-        }
-        else{
-            auto frame = hbox({
-                vbox(day) | size(WIDTH, EQUAL, 5),
-                vbox({
-                    hbox(month),
-                    gridbox(rows),
-                }) | hscroll_indicator | xframe
-            });
+        } else {
+            draw(int_choosen_year, columns);
+            auto frame = hbox({vbox(day) | size(WIDTH, EQUAL, 5),
+                               vbox({
+                                   hbox(month),
+                                   vflow(columns) | size(HEIGHT, EQUAL, 7),
+                               }) | hscroll_indicator |
+                                   xframe});
 
             auto screen = Screen::Create(Dimension::Fit(frame));
             Render(screen, frame);
             screen.Print();
         }
-    }
-    catch(std::runtime_error const& e){
-        std::cerr<<"Error: "<<e.what();
+    } catch (std::runtime_error const &e) {
+        std::cerr << "Error: " << e.what();
         return;
     }
 }

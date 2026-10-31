@@ -27,6 +27,7 @@ void Create(){
                     //task.clear();
                     return;
                 }
+                // pretty sure we will never reach the else part
                 else{
                     throw runtime_error("Bad input.");
                 }
@@ -39,7 +40,7 @@ void Create(){
                     if(task.eof()){
                         return;
                     }
-                    if(task.fail()){
+                    else{
                         throw runtime_error("Bad input");
                     }
                 }
@@ -53,7 +54,7 @@ void Create(){
             task.clear();
         }
    }
-   catch(exception e){
+   catch(runtime_error e){
        std::cerr<<"Error Occured: "<<e.what()<<'\n';
        return;
    }

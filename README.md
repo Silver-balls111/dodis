@@ -4,7 +4,7 @@
 **Features**:
   - Can create a task list
   - Update the task list
-  - Get contribution graph. (currently supports only one year.)
+  - Get contribution graph.
 
 **Build/run**:
   - Clone the repo:
@@ -26,13 +26,14 @@
   ```
   
 **To-Do**:
-  - Make the file path independent of the executable path
-  - Fix gaps between months to be proper
-  - Add option to allow editing the task file.
-  - Add scroller to the graph.
   - Make the cells hoverable and display the date in bottom.
+  - Add option to allow editing the task file.
+  - Make update() in ftxui.
   - Support image to be used in contribution graph.
+  - Add some premade color pallete to match starter images.
+  - Make the file path independent of the executable path
   - Create help()       [done.]
   - Support multiple year.      *done*
-  - Make the whole ui in FTXUI.     [Not really i like the simple version more text based rather than button based.]
   - Choose a suitable default color for the graph.      [done choose grey.]
+  - Fix gaps between months to be proper    [done]
+  - Add horizontal scroller to the graph. [done]

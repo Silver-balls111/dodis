@@ -19,3 +19,4 @@ struct MonthInfo{
 unsigned int weekdayNo(std::chrono::year_month_day ymd);
 unsigned int weekNumYear(std::chrono::year_month_day ymd);
 unsigned int weeksInMonth(std::chrono::year year, std::chrono::month month);
+std::chrono::year_month_day dayInYear(std::chrono::year year, int diff);

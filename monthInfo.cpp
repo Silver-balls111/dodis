@@ -62,3 +62,10 @@ unsigned int weeksInMonth(std::chrono::year year, std::chrono::month month){
     */
     return std::ceil((diff + given.start_weekday_num + 1) / 7.0);
 }
+
+std::chrono::year_month_day dayInYear(const std::chrono::year year, const int diff){
+    std::chrono::year_month_day jan1 = {year/std::chrono::January/1};
+    std::chrono::sys_days sjan1 = jan1;
+    std::chrono::year_month_day date = sjan1 + std::chrono::days{diff};
+    return date;
+}

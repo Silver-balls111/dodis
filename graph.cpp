@@ -15,7 +15,28 @@ namespace fs = std::filesystem;
 namespace chrono = std::chrono;
 using namespace ftxui;
 
-Color OpacityToColor(double opacity) {
+// BUG: hovering from bottom tile to above dosen't update tooltip
+// NOTE: on exit from tile sets tooltip to empty, is it fine? 
+// or do we show the average?
+
+std::string getSuffixedDate(int day) {
+    switch (day) {
+    case 1:
+    case 21:
+    case 31:
+        return std::to_string(day) + "st";
+    case 2:
+    case 22:
+        return std::to_string(day) + "nd";
+    case 3:
+    case 23:
+        return std::to_string(day) + "rd";
+    default:
+        return std::to_string(day) + "th";
+    }
+}
+
+Color opacityToColor(double opacity) {
     if (opacity == 0)
         return Color::RGB(128, 128, 128);
     if (opacity <= 0.25)
@@ -42,10 +63,12 @@ Component blank() {
     return Renderer([] { return text(" "); });
 }
 
-Component hovb(std::string &ddate, Color blockc = Color::RGB(128, 128, 128)) {
+Component hovb(const std::string label, std::string &ddate,
+               Color blockc = Color::RGB(128, 128, 128)) {
     auto block = Renderer([=] { return text("") | color(blockc); });
 
-    return Hoverable(block, [&] { ddate = "0/0/0"; }, [&] { ddate = "empty"; });
+    return Hoverable(
+        block, [&, label] { ddate = label; }, [&] { ddate = " "; });
 }
 
 void draw(const int year, std::vector<Component> &columns, std::string &ddate) {
@@ -63,8 +86,16 @@ void draw(const int year, std::vector<Component> &columns, std::string &ddate) {
         for (int day = 0; day < 7; ++day) {
             if ((week == 0 && day < jan1) || (week == wks - 1 && day > dec31))
                 columns.push_back(blank());
-            else
-                columns.push_back(hovb(ddate));
+            else {
+                chrono::year_month_day date =
+                    dayInYear(choosen_year, (7 * week + day) - jan1);
+                std::string label = std::format(
+                    "No task done on {:%A}, {:%b} {}, {}.",
+                    chrono::weekday(day), date.month(),
+                    getSuffixedDate(static_cast<unsigned>(date.day())),
+                    choosen_year);
+                columns.push_back(hovb(label, ddate));
+            }
         }
         for (int i = 0; i < 7; ++i)
             columns.push_back(blank());
@@ -103,9 +134,29 @@ void draw(const int year, std::vector<Component> &columns, std::string &ddate) {
         throw std::runtime_error(
             std::format("Reading file {}.txt", choosen_year));
 
+    double sum{0};
+    if (!opacitys.empty()) {
+        for (double opacity : opacitys)
+            sum += opacity;
+    }
+    ddate = std::format("Average rate of completion for {} is {:.3}%.", choosen_year,
+                        sum / 365 * 100);
+
     for (size_t i = 0; i < week_no.size(); ++i) {
+        chrono::year_month_day date =
+            dayInYear(choosen_year, (7 * week_no[i] + day_no[i]) - jan1);
+
+        std::string op_label =
+            std::format("{:.3}% completion", opacitys[i] * 100);
+        if (opacitys[i] == 0)
+            op_label = "No task done";
+        std::string label = std::format(
+            "{} on {:%A}, {:%b} {}, {}.", op_label, chrono::weekday(day_no[i]),
+            date.month(), getSuffixedDate(static_cast<unsigned>(date.day())),
+            date.year());
+
         columns[7 * 2 * week_no[i] + day_no[i]] =
-            hovb(ddate, OpacityToColor(opacitys[i]));
+            hovb(label, ddate, opacityToColor(opacitys[i]));
     }
 }
 
@@ -166,7 +217,7 @@ void Graph(bool interactive) {
 
             auto buttons = Container::Vertical({});
 
-            std::string ddate = "initial";
+            std::string ddate;
 
             auto horC = Container::Horizontal({});
             draw(file_names[0], columns, ddate);
@@ -201,29 +252,36 @@ void Graph(bool interactive) {
             auto dayC =
                 Renderer([&] { return vbox(day) | size(WIDTH, EQUAL, 5); });
             auto monthC = Renderer([&] { return hbox(month); });
-            auto date_box =
-                Renderer([&] { return dbox({text(ddate)}) | borderRounded; });
+            auto date_box = Renderer([&] {
+                return hbox({text(ddate), filler(), text("Less "),
+                             text(" ") | color(opacityToColor(0)),
+                             text(" ") | color(opacityToColor(0.25)),
+                             text(" ") | color(opacityToColor(0.5)),
+                             text(" ") | color(opacityToColor(0.75)),
+                             text(" ") | color(opacityToColor(1)),
+                             text("More ")}) |
+                       borderRounded;
+            });
 
             auto content = Container::Horizontal(
                 {Container::Vertical({dayC}),
                  Container::Vertical({monthC, horC | size(HEIGHT, EQUAL, 7)})});
 
-            // can't simply apply focusPositionRelative to content it must be rendered first
-            // then only panning will work don't know why though.
+            // can't simply apply focusPositionRelative to content it must be
+            // rendered first then only panning will work don't know why though.
             auto scroller = Renderer(content, [&] {
                 return content->Render() |
                        focusPositionRelative(scroll_x, scroll_y) | frame | flex;
             });
             auto screen = App::TerminalOutput();
-            auto whole = Container::Horizontal({
-                Container::Vertical({
-                    scroller, 
-                    scrollbar_x | Maybe([&] { return screen.dimx() < 120; }),
-                    date_box
-                }) | flex,
-                buttons | vscroll_indicator  | yframe | 
-                    size(HEIGHT, LESS_THAN, 8) 
-            });
+            auto whole = Container::Horizontal(
+                {Container::Vertical({scroller, scrollbar_x | Maybe([&] {
+                                                    return screen.dimx() < 120;
+                                                }),
+                                      date_box | xframe}) |
+                     flex,
+                 buttons | vscroll_indicator | yframe |
+                     size(HEIGHT, LESS_THAN, 8)});
 
             auto renderer = Renderer(whole, [&] {
                 return hbox({

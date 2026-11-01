@@ -29,7 +29,7 @@ void MonthInfo::initializer(std::chrono::year year, std::chrono::month month){
     end_weekday_num = end_weekday.c_encoding();  //Sun=0, Sat=6
 }
 
-unsigned int weekdayNo(std::chrono::year_month_day ymd){
+unsigned int weekDayNum(std::chrono::year_month_day ymd){
     /*
     returns which day (Sun, Mon,...) the given date is 
     in integer format (Sun=0, Sat=6)
@@ -38,7 +38,7 @@ unsigned int weekdayNo(std::chrono::year_month_day ymd){
     return std::chrono::weekday(sd).c_encoding();
 }
 
-unsigned int weekNumYear(std::chrono::year_month_day ymd){
+unsigned int weekNumInYear(std::chrono::year_month_day ymd){
     /*
     return the week no given date is, jan1 week is week0
     dec31 is week51/52
@@ -63,9 +63,10 @@ unsigned int weeksInMonth(std::chrono::year year, std::chrono::month month){
     return std::ceil((diff + given.start_weekday_num + 1) / 7.0);
 }
 
-std::chrono::year_month_day dayInYear(const std::chrono::year year, const int diff){
+std::chrono::year_month_day dayInYear(const std::chrono::year year, const int days_since_jan1){
+    // Returns ymd representation of a given date.
     std::chrono::year_month_day jan1 = {year/std::chrono::January/1};
     std::chrono::sys_days sjan1 = jan1;
-    std::chrono::year_month_day date = sjan1 + std::chrono::days{diff};
+    std::chrono::year_month_day date = sjan1 + std::chrono::days{days_since_jan1};
     return date;
 }

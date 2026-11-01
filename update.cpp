@@ -14,11 +14,12 @@ void Update() {
     try {
         ifstream read{"tasks.txt"};
 
-        if (std::filesystem::is_empty("tasks.txt")) {
-            throw runtime_error("Task file empty. Nothing to update.");
-        }
         if (!read) {
             throw runtime_error("Failed to open tasks file.");
+        }
+
+        if (std::filesystem::is_empty("tasks.txt")) {
+            throw runtime_error("Task file empty. Nothing to update.");
         }
 
         float aggregate_opacity{0};

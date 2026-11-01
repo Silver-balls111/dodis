@@ -16,24 +16,29 @@ namespace chrono = std::chrono;
 using namespace ftxui;
 
 // BUG: hovering from bottom tile to above dosen't update tooltip
-// NOTE: on exit from tile sets tooltip to empty, is it fine? 
+// NOTE: on exit from tile sets tooltip to empty, is it fine?
 // or do we show the average?
 
-std::string getSuffixedDate(int day) {
+std::string getSuffixedDate(unsigned int day) {
+    std::string suffix{};
     switch (day) {
     case 1:
     case 21:
     case 31:
-        return std::to_string(day) + "st";
+        suffix = "st";
+        break;
     case 2:
     case 22:
-        return std::to_string(day) + "nd";
+        suffix = "nd";
+        break;
     case 3:
     case 23:
-        return std::to_string(day) + "rd";
+        suffix = "rd";
+        break;
     default:
-        return std::to_string(day) + "th";
+        suffix = "th";
     }
+    return std::to_string(day) + suffix;
 }
 
 Color opacityToColor(double opacity) {
@@ -48,44 +53,47 @@ Color opacityToColor(double opacity) {
     return Color::RGB(252, 166, 209);
 }
 
-void rebuildGrid(Component &horC, std::vector<Component> &columns) {
-    horC->DetachAllChildren();
+void rebuildGrid(Component &hbox_comp, std::vector<Component> &tiles) {
+    hbox_comp->DetachAllChildren();
     for (int weeks = 0; weeks < 2 * 54; ++weeks) {
-        auto verC = Container::Vertical({});
+        auto column = Container::Vertical({});
         for (int day = 0; day < 7; ++day) {
-            verC->Add(columns[7 * weeks + day]);
+            column->Add(tiles[7 * weeks + day]);
         }
-        horC->Add(verC);
+        hbox_comp->Add(column);
     }
 }
 
-Component blank() {
+Component getEmptyTile() {
     return Renderer([] { return text(" "); });
 }
 
-Component hovb(const std::string label, std::string &ddate,
-               Color blockc = Color::RGB(128, 128, 128)) {
-    auto block = Renderer([=] { return text("") | color(blockc); });
+Component getHoverableTile(std::string &tooltip_content,
+                           const std::string on_enter_text,
+                           Color tile_color = Color::RGB(128, 128, 128)) {
+    auto block = Renderer(
+        [=] { return text("") | color(tile_color); }); // nerd-font f0c8
 
     return Hoverable(
-        block, [&, label] { ddate = label; }, [&] { ddate = " "; });
+        block, [&, on_enter_text] { tooltip_content = on_enter_text; },
+        [&] { tooltip_content = " "; });
 }
 
-void draw(const int year, std::vector<Component> &columns, std::string &ddate) {
-
+void rebuildTiles(const int year, std::vector<Component> &tiles,
+                  std::string &tooltip_content) {
     chrono::year choosen_year{year};
-    unsigned int jan1 = weekdayNo(choosen_year / chrono::January / 1);
-    unsigned int dec31 = weekdayNo(choosen_year / chrono::December / 31);
+    unsigned int jan1 = weekDayNum(choosen_year / chrono::January / 1);
+    unsigned int dec31 = weekDayNum(choosen_year / chrono::December / 31);
 
-    columns.clear();
-    int wks{53};
-    if (choosen_year.is_leap() && jan1 == 6) {
-        wks = 54;
-    }
-    for (int week = 0; week < wks; ++week) {
+    tiles.clear();
+
+    // leap yr which starts at Sat ends at Sun has 54 wks. ex: 2028
+    int weeks = choosen_year.is_leap() && jan1 == 6 ? 54 : 53;
+
+    for (int week = 0; week < weeks; ++week) {
         for (int day = 0; day < 7; ++day) {
-            if ((week == 0 && day < jan1) || (week == wks - 1 && day > dec31))
-                columns.push_back(blank());
+            if ((week == 0 && day < jan1) || (week == weeks - 1 && day > dec31))
+                tiles.push_back(getEmptyTile());
             else {
                 chrono::year_month_day date =
                     dayInYear(choosen_year, (7 * week + day) - jan1);
@@ -94,15 +102,17 @@ void draw(const int year, std::vector<Component> &columns, std::string &ddate) {
                     chrono::weekday(day), date.month(),
                     getSuffixedDate(static_cast<unsigned>(date.day())),
                     choosen_year);
-                columns.push_back(hovb(label, ddate));
+
+                tiles.push_back(getHoverableTile(tooltip_content, label));
             }
         }
         for (int i = 0; i < 7; ++i)
-            columns.push_back(blank());
+            tiles.push_back(getEmptyTile());
     }
-    if (wks == 53) {
+    // to avoid resizing of yr button column between leap and non-leap yrs.
+    if (weeks == 53) {
         for (int i = 0; i < 14; ++i)
-            columns.push_back(blank());
+            tiles.push_back(getEmptyTile());
     }
 
     std::string contrib_file_name =
@@ -114,20 +124,24 @@ void draw(const int year, std::vector<Component> &columns, std::string &ddate) {
 
     std::stringstream file_buffer;
     file_buffer << file.rdbuf();
+    // if the file was empty then it would set file_buffer to fail state instead
+    // of setting its eof bit and program would throw error
     file_buffer.clear();
 
-    std::vector<int> week_no;
-    std::vector<int> day_no;
+    std::vector<int> week_num;
+    std::vector<int> day_num;
     std::vector<double> opacitys;
 
     chrono::year_month_day ymd;
     float opacity{0.0};
 
+    // need to consume whitespace because parse() dosen't or else it would cause
+    // error for the trailing newline.
     while (file_buffer >> std::ws >> chrono::parse("%Y/%m/%d", ymd) >>
            opacity) {
+        week_num.push_back(weekNumInYear(ymd));
+        day_num.push_back(weekDayNum(ymd));
         opacitys.push_back(opacity);
-        week_no.push_back(weekNumYear(ymd));
-        day_no.push_back(weekdayNo(ymd));
     }
 
     if (!file_buffer.eof())
@@ -135,40 +149,33 @@ void draw(const int year, std::vector<Component> &columns, std::string &ddate) {
             std::format("Reading file {}.txt", choosen_year));
 
     double sum{0};
-    if (!opacitys.empty()) {
-        for (double opacity : opacitys)
-            sum += opacity;
-    }
-    ddate = std::format("Average rate of completion for {} is {:.3}%.", choosen_year,
-                        sum / 365 * 100);
+    for (double opacity : opacitys)
+        sum += opacity;
 
-    for (size_t i = 0; i < week_no.size(); ++i) {
+    tooltip_content =
+        std::format("Average rate of completion for {} is {:.3}%.",
+                    choosen_year, sum / 365 * 100);
+
+    for (size_t i = 0; i < week_num.size(); ++i) {
         chrono::year_month_day date =
-            dayInYear(choosen_year, (7 * week_no[i] + day_no[i]) - jan1);
-
+            dayInYear(choosen_year, (7 * week_num[i] + day_num[i]) - jan1);
         std::string op_label =
             std::format("{:.3}% completion", opacitys[i] * 100);
         if (opacitys[i] == 0)
             op_label = "No task done";
         std::string label = std::format(
-            "{} on {:%A}, {:%b} {}, {}.", op_label, chrono::weekday(day_no[i]),
+            "{} on {:%A}, {:%b} {}, {}.", op_label, chrono::weekday(day_num[i]),
             date.month(), getSuffixedDate(static_cast<unsigned>(date.day())),
             date.year());
 
-        columns[7 * 2 * week_no[i] + day_no[i]] =
-            hovb(label, ddate, opacityToColor(opacitys[i]));
+        tiles[7 * 2 * week_num[i] + day_num[i]] = getHoverableTile(
+            label, tooltip_content, opacityToColor(opacitys[i]));
     }
 }
 
 void Graph(bool interactive) {
     try {
-        const auto today =
-            chrono::floor<std::chrono::days>(chrono::system_clock::now());
-        chrono::year_month_day ymd = today;
-
-        unsigned int int_choosen_year = static_cast<int>(ymd.year());
-
-        std::vector<Component> columns;
+        std::vector<Component> tiles;
 
         std::vector<Element> day;
         std::vector<std::string> days{"   ", "Sun", "Mon", "Tue",
@@ -176,6 +183,8 @@ void Graph(bool interactive) {
         for (auto x : days) {
             day.push_back(text(x) | bold | color(Color::Red));
         }
+        auto day_comp =
+            Renderer([&] { return vbox(day) | size(WIDTH, EQUAL, 5); });
 
         std::vector<Element> month;
         std::vector<std::string> months{"Jan", "Feb", "Mar", "Apr",
@@ -186,11 +195,29 @@ void Graph(bool interactive) {
             month.push_back(text(months[i]) | bold | color(Color::Red));
             month.push_back(text("  ")); // 2 spaces
             if (i % 2 == 0) {
-                std::string space(" ");
-                month.push_back(text(space));
+                month.push_back(text(" "));
             }
-            month.push_back(text(" ")); // to match the initial space of grid
+            month.push_back(text(" "));
         }
+        auto month_comp = Renderer([&] { return hbox(month); });
+
+        std::string tooltip_content;
+        auto tooltip = Renderer([&] {
+            return hbox({text(tooltip_content), filler(), text("Less "),
+                         text(" ") | color(opacityToColor(0)),
+                         text(" ") | color(opacityToColor(0.25)),
+                         text(" ") | color(opacityToColor(0.5)),
+                         text(" ") | color(opacityToColor(0.75)),
+                         text(" ") | color(opacityToColor(1)),
+                         text("More ")}) |
+                   borderRounded;
+        });
+
+        auto hbox_comp = Container::Horizontal({});
+        auto content = Container::Horizontal(
+            {Container::Vertical({day_comp}),
+             Container::Vertical(
+                 {month_comp, hbox_comp | size(HEIGHT, EQUAL, 7)})});
 
         if (interactive) {
             std::vector<int> file_names;
@@ -211,21 +238,18 @@ void Graph(bool interactive) {
             }
             std::ranges::sort(file_names,
                               std::greater<int>()); // descending order
+
+            rebuildTiles(file_names[0], tiles, tooltip_content);
+            rebuildGrid(hbox_comp, tiles);
+
             auto style =
                 ButtonOption::Animated(Color::Default, Color::Grey62,
                                        Color::Default, Color::OrangeRed1);
-
             auto buttons = Container::Vertical({});
 
-            std::string ddate;
-
-            auto horC = Container::Horizontal({});
-            draw(file_names[0], columns, ddate);
-            rebuildGrid(horC, columns);
-
             auto onYearSelected = [&](int file) {
-                draw(file, columns, ddate);
-                rebuildGrid(horC, columns);
+                rebuildTiles(file, tiles, tooltip_content);
+                rebuildGrid(hbox_comp, tiles);
             };
 
             for (int file : file_names) {
@@ -234,11 +258,11 @@ void Graph(bool interactive) {
                     [&onYearSelected, file] { onYearSelected(file); }, style));
             }
 
-            float scroll_x = 0.1f;
-            float scroll_y = 0.1f;
+            float scroll_pos_x = 0.1f;
+            float scroll_pos_y = 0.1f;
 
             SliderOption<float> option_x;
-            option_x.value = &scroll_x;
+            option_x.value = &scroll_pos_x;
             option_x.min = 0.f;
             option_x.max = 1.f;
             option_x.increment = 0.1f;
@@ -247,38 +271,31 @@ void Graph(bool interactive) {
             option_x.color_active = Color::Blue;
             option_x.color_inactive = Color::BlueLight;
 
+            // NOTE: option.lable is only available in my fork of ftxui
             auto scrollbar_x = Slider(option_x);
 
-            auto dayC =
-                Renderer([&] { return vbox(day) | size(WIDTH, EQUAL, 5); });
-            auto monthC = Renderer([&] { return hbox(month); });
-            auto date_box = Renderer([&] {
-                return hbox({text(ddate), filler(), text("Less "),
-                             text(" ") | color(opacityToColor(0)),
-                             text(" ") | color(opacityToColor(0.25)),
-                             text(" ") | color(opacityToColor(0.5)),
-                             text(" ") | color(opacityToColor(0.75)),
-                             text(" ") | color(opacityToColor(1)),
-                             text("More ")}) |
-                       borderRounded;
-            });
-
-            auto content = Container::Horizontal(
-                {Container::Vertical({dayC}),
-                 Container::Vertical({monthC, horC | size(HEIGHT, EQUAL, 7)})});
-
-            // can't simply apply focusPositionRelative to content it must be
-            // rendered first then only panning will work don't know why though.
-            auto scroller = Renderer(content, [&] {
+            // panning with focusPositionRelative requires knowing the actual
+            // rendered box size of the content to compute the offsets, so we
+            // must first render it to make it scrollable.
+            auto scrollable_content = Renderer(content, [&] {
                 return content->Render() |
-                       focusPositionRelative(scroll_x, scroll_y) | frame | flex;
+                       focusPositionRelative(scroll_pos_x, scroll_pos_y) |
+                       frame | flex;
             });
+
+            /*
+            here we had to use screen.dimx() instead of Terminal::Size().dimx
+            because term size only reports the initial size where as screen size
+            is dynamic. https://github.com/ArthurSonzogni/FTXUI/discussions/1047
+            dimx/y is in terms of characters, do / 10 on pixels
+            */
+            // BUG: yr selector buttons are not focused initially
             auto screen = App::TerminalOutput();
             auto whole = Container::Horizontal(
-                {Container::Vertical({scroller, scrollbar_x | Maybe([&] {
-                                                    return screen.dimx() < 120;
-                                                }),
-                                      date_box | xframe}) |
+                {Container::Vertical(
+                     {scrollable_content,
+                      scrollbar_x | Maybe([&] { return screen.dimx() < 120; }),
+                      tooltip | xframe}) |
                      flex,
                  buttons | vscroll_indicator | yframe |
                      size(HEIGHT, LESS_THAN, 8)});
@@ -297,17 +314,25 @@ void Graph(bool interactive) {
                 return false;
             });
             screen.Loop(renderer);
-        } else {
-            // draw(int_choosen_year, columns);
-            auto frame = hbox({vbox(day) | size(WIDTH, EQUAL, 5),
-                               vbox({
-                                   hbox(month),
-                                   // vflow(columns) | size(HEIGHT, EQUAL, 7),
-                               }) | hscroll_indicator |
-                                   xframe});
 
-            auto screen = Screen::Create(Dimension::Fit(frame));
-            Render(screen, frame);
+        } else {
+            const auto today =
+                chrono::floor<std::chrono::days>(chrono::system_clock::now());
+            chrono::year_month_day ymd = today;
+            unsigned int current_year = static_cast<int>(ymd.year());
+
+            rebuildTiles(current_year, tiles, tooltip_content);
+            rebuildGrid(hbox_comp, tiles);
+
+            auto whole = Container::Horizontal(
+                {Container::Vertical(
+                     {content | xframe | flex,
+                      tooltip})
+            }) ;
+
+            auto whole_rendered = whole->Render();
+            auto screen = Screen::Create(Dimension::Fit(whole_rendered, true));
+            Render(screen, whole_rendered);
             screen.Print();
         }
     } catch (std::runtime_error const &e) {

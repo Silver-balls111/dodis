@@ -26,7 +26,6 @@
   ```
   
 **To-Do**:
-  - Make the cells hoverable and display the date in bottom.
   - Add option to allow editing the task file.
   - Make update() in ftxui.
   - Support image to be used in contribution graph.
@@ -37,3 +36,4 @@
   - Choose a suitable default color for the graph.      [done choose grey.]
   - Fix gaps between months to be proper    [done]
   - Add horizontal scroller to the graph. [done]
+  - Make the cells hoverable and display the date in bottom. [done]

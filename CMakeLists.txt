@@ -12,7 +12,8 @@ target_sources(dodis
         update.cpp
         graph.cpp
         help.cpp
-        monthInfo.cpp
+        helpers/monthInfo.cpp
+        helpers/conversions.cpp
 )
 
 include(FetchContent)

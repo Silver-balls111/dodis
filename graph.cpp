@@ -1,4 +1,5 @@
-#include "monthInfo.hpp"
+#include "helpers/conversions.hpp"
+#include "helpers/monthInfo.hpp"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -16,44 +17,25 @@ namespace chrono = std::chrono;
 using namespace ftxui;
 
 // BUG: hovering from bottom tile to above dosen't update tooltip
-// NOTE: on exit from tile sets tooltip to empty, is it fine?
-// or do we show the average?
+// NOTE: on exit from tile hover tooltip becomes empty, is it fine?
+// or do we show yr avg?
 
-std::string getSuffixedDate(unsigned int day) {
-    std::string suffix{};
-    switch (day) {
-    case 1:
-    case 21:
-    case 31:
-        suffix = "st";
-        break;
-    case 2:
-    case 22:
-        suffix = "nd";
-        break;
-    case 3:
-    case 23:
-        suffix = "rd";
-        break;
-    default:
-        suffix = "th";
-    }
-    return std::to_string(day) + suffix;
+inline Component getEmptyTile() {
+    return Renderer([] { return text(" "); });
 }
 
-Color opacityToColor(double opacity) {
-    if (opacity == 0)
-        return Color::RGB(128, 128, 128);
-    if (opacity <= 0.25)
-        return Color::RGB(69, 52, 77);
-    if (opacity <= 0.50)
-        return Color::RGB(138, 95, 127);
-    if (opacity <= 0.75)
-        return Color::RGB(195, 131, 168);
-    return Color::RGB(252, 166, 209);
+Component getHoverableTile(std::string &tooltip_content,
+                           const std::string on_enter_text,
+                           const Color tile_color = Color::RGB(128, 128, 128)) {
+    auto block = Renderer(
+        [=] { return text("") | color(tile_color); }); // nerd-font f0c8
+
+    return Hoverable(
+        block, [&, on_enter_text] { tooltip_content = on_enter_text; },
+        [&] { tooltip_content = " "; });
 }
 
-void rebuildGrid(Component &hbox_comp, std::vector<Component> &tiles) {
+void rebuildGrid(Component &hbox_comp, const std::vector<Component> &tiles) {
     hbox_comp->DetachAllChildren();
     for (int weeks = 0; weeks < 2 * 54; ++weeks) {
         auto column = Container::Vertical({});
@@ -64,24 +46,8 @@ void rebuildGrid(Component &hbox_comp, std::vector<Component> &tiles) {
     }
 }
 
-Component getEmptyTile() {
-    return Renderer([] { return text(" "); });
-}
-
-Component getHoverableTile(std::string &tooltip_content,
-                           const std::string on_enter_text,
-                           Color tile_color = Color::RGB(128, 128, 128)) {
-    auto block = Renderer(
-        [=] { return text("") | color(tile_color); }); // nerd-font f0c8
-
-    return Hoverable(
-        block, [&, on_enter_text] { tooltip_content = on_enter_text; },
-        [&] { tooltip_content = " "; });
-}
-
-void rebuildTiles(const int year, std::vector<Component> &tiles,
-                  std::string &tooltip_content) {
-    chrono::year choosen_year{year};
+void rebuildTiles(const chrono::year &choosen_year,
+                  std::vector<Component> &tiles, std::string &tooltip_content) {
     unsigned int jan1 = weekDayNum(choosen_year / chrono::January / 1);
     unsigned int dec31 = weekDayNum(choosen_year / chrono::December / 31);
 
@@ -174,10 +140,16 @@ void rebuildTiles(const int year, std::vector<Component> &tiles,
 }
 
 void Graph(bool interactive) {
+    auto start = chrono::steady_clock::now();
+    double startup_ms = 0.0;
+    bool first_frame = true;
+
     try {
         std::vector<Component> tiles;
+        tiles.reserve(756);
 
         std::vector<Element> day;
+        day.reserve(8);
         std::vector<std::string> days{"   ", "Sun", "Mon", "Tue",
                                       "Wed", "Thu", "Fri", "Sat"};
         for (auto x : days) {
@@ -187,6 +159,7 @@ void Graph(bool interactive) {
             Renderer([&] { return vbox(day) | size(WIDTH, EQUAL, 5); });
 
         std::vector<Element> month;
+        month.reserve(54);
         std::vector<std::string> months{"Jan", "Feb", "Mar", "Apr",
                                         "May", "Jun", "Jul", "Aug",
                                         "Sep", "Oct", "Nov", "Dec"};
@@ -203,7 +176,11 @@ void Graph(bool interactive) {
 
         std::string tooltip_content;
         auto tooltip = Renderer([&] {
-            return hbox({text(tooltip_content), filler(), text("Less "),
+            return hbox({text(tooltip_content),
+                         text(startup_ms > 0 ? std::format("startup {:.0f} ms ",
+                                                           startup_ms)
+                                             : ""),
+                         filler(), text("Less "),
                          text(" ") | color(opacityToColor(0)),
                          text(" ") | color(opacityToColor(0.25)),
                          text(" ") | color(opacityToColor(0.5)),
@@ -220,15 +197,14 @@ void Graph(bool interactive) {
                  {month_comp, hbox_comp | size(HEIGHT, EQUAL, 7)})});
 
         if (interactive) {
-            std::vector<int> file_names;
+            std::vector<chrono::year> file_names;
             for (const auto &entry : fs::directory_iterator("contributions")) {
                 if (entry.is_regular_file() &&
                     entry.path().extension() == fs::path(".txt")) {
                     try {
-                        int x = std::stoi(entry.path().stem());
-                        chrono::year yr{x};
+                        chrono::year yr{stringToYear(entry.path().stem())};
                         if (yr.ok())
-                            file_names.push_back(x);
+                            file_names.push_back(yr);
                     } catch (std::invalid_argument) {
                         continue;
                     } catch (std::out_of_range) {
@@ -237,7 +213,7 @@ void Graph(bool interactive) {
                 }
             }
             std::ranges::sort(file_names,
-                              std::greater<int>()); // descending order
+                              std::greater<chrono::year>()); // descending order
 
             rebuildTiles(file_names[0], tiles, tooltip_content);
             rebuildGrid(hbox_comp, tiles);
@@ -247,14 +223,14 @@ void Graph(bool interactive) {
                                        Color::Default, Color::OrangeRed1);
             auto buttons = Container::Vertical({});
 
-            auto onYearSelected = [&](int file) {
+            auto onYearSelected = [&](chrono::year file) {
                 rebuildTiles(file, tiles, tooltip_content);
                 rebuildGrid(hbox_comp, tiles);
             };
 
-            for (int file : file_names) {
+            for (chrono::year file : file_names) {
                 buttons->Add(Button(
-                    std::to_string(file),
+                    yearToString(file),
                     [&onYearSelected, file] { onYearSelected(file); }, style));
             }
 
@@ -301,9 +277,16 @@ void Graph(bool interactive) {
                      size(HEIGHT, LESS_THAN, 8)});
 
             auto renderer = Renderer(whole, [&] {
-                return hbox({
-                    whole->Render(),
-                });
+                auto element = whole->Render();
+                if (first_frame) {
+                    first_frame = false;
+                    startup_ms = chrono::duration<double, std::milli>(
+                                     chrono::steady_clock::now() - start)
+                                     .count();
+                    screen.PostEvent(
+                        Event::Custom); // one extra redraw so the number shows
+                }
+                return element;
             });
 
             renderer |= CatchEvent([&](Event event) {
@@ -314,21 +297,16 @@ void Graph(bool interactive) {
                 return false;
             });
             screen.Loop(renderer);
-
         } else {
             const auto today =
                 chrono::floor<std::chrono::days>(chrono::system_clock::now());
             chrono::year_month_day ymd = today;
-            unsigned int current_year = static_cast<int>(ymd.year());
 
-            rebuildTiles(current_year, tiles, tooltip_content);
+            rebuildTiles(ymd.year(), tiles, tooltip_content);
             rebuildGrid(hbox_comp, tiles);
 
             auto whole = Container::Horizontal(
-                {Container::Vertical(
-                     {content | xframe | flex,
-                      tooltip})
-            }) ;
+                {Container::Vertical({content | xframe | flex, tooltip})});
 
             auto whole_rendered = whole->Render();
             auto screen = Screen::Create(Dimension::Fit(whole_rendered, true));

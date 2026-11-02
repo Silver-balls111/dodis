@@ -19,7 +19,8 @@ void Update() {
         }
 
         if (std::filesystem::is_empty("tasks.txt")) {
-            throw runtime_error("Task file empty. Nothing to update.");
+            std::cout << "Task file empty. Nothing to update.";
+            return;
         }
 
         float aggregate_opacity{0};

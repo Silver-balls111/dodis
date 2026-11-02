@@ -169,7 +169,7 @@ void rebuildTiles(const int year, std::vector<Component> &tiles,
             date.year());
 
         tiles[7 * 2 * week_num[i] + day_num[i]] = getHoverableTile(
-            label, tooltip_content, opacityToColor(opacitys[i]));
+            tooltip_content, label, opacityToColor(opacitys[i]));
     }
 }
 

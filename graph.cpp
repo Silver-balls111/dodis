@@ -140,10 +140,6 @@ void rebuildTiles(const chrono::year &choosen_year,
 }
 
 void Graph(bool interactive) {
-    auto start = chrono::steady_clock::now();
-    double startup_ms = 0.0;
-    bool first_frame = true;
-
     try {
         std::vector<Component> tiles;
         tiles.reserve(756);
@@ -177,9 +173,6 @@ void Graph(bool interactive) {
         std::string tooltip_content;
         auto tooltip = Renderer([&] {
             return hbox({text(tooltip_content),
-                         text(startup_ms > 0 ? std::format("startup {:.0f} ms ",
-                                                           startup_ms)
-                                             : ""),
                          filler(), text("Less "),
                          text(" ") | color(opacityToColor(0)),
                          text(" ") | color(opacityToColor(0.25)),
@@ -277,16 +270,7 @@ void Graph(bool interactive) {
                      size(HEIGHT, LESS_THAN, 8)});
 
             auto renderer = Renderer(whole, [&] {
-                auto element = whole->Render();
-                if (first_frame) {
-                    first_frame = false;
-                    startup_ms = chrono::duration<double, std::milli>(
-                                     chrono::steady_clock::now() - start)
-                                     .count();
-                    screen.PostEvent(
-                        Event::Custom); // one extra redraw so the number shows
-                }
-                return element;
+                return whole->Render();
             });
 
             renderer |= CatchEvent([&](Event event) {

@@ -302,6 +302,8 @@ void Graph(bool interactive) {
                 chrono::floor<std::chrono::days>(chrono::system_clock::now());
             chrono::year_month_day ymd = today;
 
+            // TODO: make tooltip show the contribution for the day when it was
+            // run when triggered through update()
             rebuildTiles(ymd.year(), tiles, tooltip_content);
             rebuildGrid(hbox_comp, tiles);
 

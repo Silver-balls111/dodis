@@ -19,7 +19,7 @@ void Update() {
         }
 
         if (std::filesystem::is_empty("tasks.txt")) {
-            std::cout << "Task file empty. Nothing to update.";
+            std::cout << "Task file empty. Nothing to update.\n";
             return;
         }
 
@@ -97,7 +97,6 @@ void Update() {
                 float opac;
                 buffer >> date >> opac;
                 if (!buffer || (date == todays_date)) {
-                    cout << '\n' << dates.size();
                     break;
                 }
                 dates.push_back(date);

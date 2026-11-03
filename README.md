@@ -37,3 +37,4 @@
   - Fix gaps between months to be proper    [done]
   - Add horizontal scroller to the graph. [done]
   - Make the cells hoverable and display the date in bottom. [done]
+  - Make create ui in ftxui. [done]

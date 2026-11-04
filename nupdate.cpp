@@ -15,15 +15,15 @@ void Update() {
     while (file) {
         std::string task;
         getline(file, task);
-        tasks.push_back(task);
+        tasks.push_back("   " + task);
     }
     file.close();
-
+    const std::vector<std::string> task_copy = tasks;
     int selected = 0;
 
-    std::string_view check {" "};
-    std::string_view cross {" "};
-    std::string_view empty {"  "};
+    std::string_view check {"  "};
+    std::string_view cross {"  "};
+    std::string_view empty {"   "};
     
     std::vector<bool> done(tasks.size());
     std::vector<bool> not_done(tasks.size());
@@ -54,6 +54,7 @@ void Update() {
         if (event == Event::Return) {
             not_done[selected] = false;
             done[selected] = !done[selected];
+            tasks[selected] = done[selected] ? task_copy[selected].substr(3) : tasks[selected];
             icon[selected] = done[selected] ? check : empty;
             return true;
         }
@@ -61,6 +62,7 @@ void Update() {
         if (event == Event::Character('x')) {
             done[selected] = false;
             not_done[selected] = !not_done[selected];
+            tasks[selected] = not_done[selected] ? task_copy[selected].substr(3) :tasks[selected];
             icon[selected] = not_done[selected] ? cross : empty;
             return true;
         }

@@ -18,35 +18,42 @@ void Update() {
         tasks.push_back("   " + task);
     }
     file.close();
-    const std::vector<std::string> task_copy = tasks;
-    int selected = 0;
 
-    std::string_view check {"  "};
-    std::string_view cross {"  "};
-    std::string_view empty {"   "};
-    
+    std::string_view check{"  "};
+    std::string_view cross{"  "};
+    std::string_view empty{"   "};
+
     std::vector<bool> done(tasks.size());
     std::vector<bool> not_done(tasks.size());
     std::vector<std::string_view> icon(tasks.size());
-    for (auto x: icon)
+    for (auto x : icon)
         x = empty;
 
     MenuOption opt;
     opt.entries_option.transform = [&](EntryState state) {
         Element gutter = text(icon[state.index]);
         Element label = text(state.label);
-        if (done[state.index]){
+        if (done[state.index]) {
             gutter |= color(Color::Green);
-            label = label | strikethrough | dim;
+            label = label | strikethrough | color(Color::Green) | dim;
         }
-        if (not_done[state.index]){
+        if (not_done[state.index]) {
             gutter |= color(Color::Red);
             label = label | strikethrough | color(Color::Red);
         }
-        if (state.focused)
+        Element combined = hbox({gutter, label});
+        if (state.focused) {
+            // TODO: choose better hover color
+            gutter |= inverted;
             label |= inverted;
-        return hbox({ gutter, label});
+        }
+        return hbox({gutter, label});
     };
+
+    // Look we need a extra copy that we can use to get the orginial label or
+    // else the ternary would just eat 3 chars from label until seg fault.
+    const std::vector<std::string> task_copy = tasks;
+    int selected = 0;
 
     auto task_list = Menu(&tasks, &selected, opt);
 
@@ -54,7 +61,8 @@ void Update() {
         if (event == Event::Return) {
             not_done[selected] = false;
             done[selected] = !done[selected];
-            tasks[selected] = done[selected] ? task_copy[selected].substr(3) : tasks[selected];
+            tasks[selected] = done[selected] ? task_copy[selected].substr(3)
+                                             : tasks[selected];
             icon[selected] = done[selected] ? check : empty;
             return true;
         }
@@ -62,7 +70,8 @@ void Update() {
         if (event == Event::Character('x')) {
             done[selected] = false;
             not_done[selected] = !not_done[selected];
-            tasks[selected] = not_done[selected] ? task_copy[selected].substr(3) :tasks[selected];
+            tasks[selected] = not_done[selected] ? task_copy[selected].substr(3)
+                                                 : tasks[selected];
             icon[selected] = not_done[selected] ? cross : empty;
             return true;
         }

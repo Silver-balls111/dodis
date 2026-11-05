@@ -53,9 +53,9 @@ void Create() {
     auto conditional_empty_msg = empty_list_msg | Maybe(&empty_list);
 
     auto hints = hbox({
-        text("Enter ") | bold | dim,
-        text("add · ") | dim,
-        text("Esc ") | bold | dim,
+        text("Enter ") | bold,
+        text("add | ") | dim,
+        text("Esc ") | bold,
         text("finish") | dim,
     });
     auto renderer = Renderer(input, [&] {

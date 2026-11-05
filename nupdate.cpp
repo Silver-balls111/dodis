@@ -11,6 +11,49 @@
 
 namespace chrono = std::chrono;
 
+namespace CompColor {
+const static inline ftxui::Color done = ftxui::Color::RGB(166, 227, 161);
+const static inline ftxui::Color not_done = ftxui::Color::RGB(255, 180, 171);
+}; // namespace CompColor
+
+namespace Glyph {
+static constexpr std::string_view empty{"   "};
+static constexpr std::string_view check{"  "};
+static constexpr std::string_view cross{"  "};
+static constexpr std::string_view below12{"󰝦  "};
+static constexpr std::string_view below25{"󰪞  "};
+static constexpr std::string_view below37{"󰪟  "};
+static constexpr std::string_view below50{"󰪠  "};
+static constexpr std::string_view below62{"󰪡  "};
+static constexpr std::string_view below75{"󰪢  "};
+static constexpr std::string_view below87{"󰪣  "};
+static constexpr std::string_view below100{"󰪤  "};
+}; // namespace Glyph
+
+std::string_view opacityToGlyph(float op) {
+    using namespace Glyph;
+    if (op == 0)
+        return cross;
+    else if (op < 0.12)
+        return below12;
+    else if (op < 0.25)
+        return below25;
+    else if (op < 0.37)
+        return below37;
+    else if (op < 0.50)
+        return below50;
+    else if (op < 0.62)
+        return below62;
+    else if (op < 0.75)
+        return below75;
+    else if (op < 0.87)
+        return below87;
+    else if (op < 1)
+        return below100;
+    else
+        return check;
+}
+
 void finishUP(float final_opacity) {
     using namespace std;
     const auto today = chrono::floor<chrono::days>(chrono::system_clock::now());
@@ -60,6 +103,10 @@ void finishUP(float final_opacity) {
     return;
 }
 
+// TODO: store entered completion value on task which resets everyday
+// TODO: add colors to percentage level from red green gradient
+// TODO: sort task on completion rate on startup 
+
 void Update() {
     using namespace ftxui;
 
@@ -70,35 +117,32 @@ void Update() {
 
     std::string task;
     while (getline(file, task)) {
-        tasks.push_back("   " + task);
+        tasks.push_back(task);
     }
     file.close();
 
-    std::string_view check{"  "};
-    std::string_view cross{"  "};
-    std::string_view empty{"   "};
-
     const int vec_sizes = tasks.size();
-    std::vector<float> completion(vec_sizes);
-    std::vector<bool> done(vec_sizes);
-    std::vector<bool> not_done(vec_sizes);
-    std::vector<std::string_view> icon(vec_sizes);
-    for (auto x : icon)
-        x = empty;
+    std::vector<double> comp_level;
+    comp_level.reserve(vec_sizes);
+    std::vector<std::string_view> icon;
+    icon.reserve(vec_sizes);
+    for (int i = 0; i < vec_sizes; ++i) {
+        comp_level.emplace_back(-1);
+        icon.emplace_back(Glyph::empty);
+    }
 
     MenuOption opt;
     opt.entries_option.transform = [&](EntryState state) {
         Element gutter = text(icon[state.index]);
         Element label = text(state.label);
-        if (done[state.index]) {
-            gutter |= color(Color::RGB(166, 227, 161)) | dim;
-            label = label | strikethrough | color(Color::RGB(166, 227, 161)) | dim;
+        if (comp_level[state.index] == 1) {
+            gutter |= color(CompColor::done) | dim;
+            label = label | strikethrough | color(CompColor::done) | dim;
         }
-        if (not_done[state.index]) {
-            gutter |= color(Color::Red);
-            label = label | strikethrough | color(Color::Red);
+        if (comp_level[state.index] == 0) {
+            gutter |= color(CompColor::not_done);
+            label = label | strikethrough | color(CompColor::not_done);
         }
-        Element combined = hbox({gutter, label});
         if (state.focused) {
             // TODO: choose better hover color
             gutter |= inverted;
@@ -107,11 +151,7 @@ void Update() {
         return hbox({gutter, label});
     };
 
-    // Look we need a extra copy that we can use to get the orginial label or
-    // else the ternary would just eat 3 chars from label until seg fault.
-    const std::vector<std::string> task_copy = tasks;
     int selected = 0;
-    // bool show_modal{false};
     int depth{0};
     std::string input_text;
 
@@ -125,7 +165,7 @@ void Update() {
     };
     auto input = Input(&input_text, &placehol, ip_opt);
     input |= CatchEvent([&](Event event) {
-        if (event == Event::Escape){
+        if (event == Event::Escape) {
             input_text.clear();
             depth = 0;
             return true;
@@ -135,19 +175,18 @@ void Update() {
         if (input_text.empty())
             return true;
         try {
-            float v{0.0};
+            double v{0.0};
+            if (input_text.ends_with('%'))
+                input_text = input_text.substr(0, input_text.size() - 1);
             v = std::stof(input_text);
-            if (v < 0){
+            if (v < 0)
                 v = 0;
-                done[selected] = 1;
-            }
-            else if (v > 100){
+            else if (v > 100)
                 v = 1;
-                not_done[selected] = 1;
-            }
             else
                 v = v / 100;
-            completion[selected] = v;
+            comp_level[selected] = v;
+            icon[selected] = opacityToGlyph(v);
             input_text.clear();
             depth = 0;
         } catch (std::invalid_argument) {
@@ -168,42 +207,33 @@ void Update() {
 
     task_list |= CatchEvent([&](Event event) {
         if (event == Event::Return) {
-            not_done[selected] = false;
-            done[selected] = !done[selected];
-            tasks[selected] = done[selected] ? task_copy[selected].substr(3)
-                                             : tasks[selected];
-            icon[selected] = done[selected] ? check : empty;
-            completion[selected] = 1;
+            comp_level[selected] = comp_level[selected] == 1 ? -1 : 1;
+            icon[selected] =
+                comp_level[selected] == 1 ? Glyph::check : Glyph::empty;
             return true;
         }
 
         if (event == Event::x) {
-            done[selected] = false;
-            not_done[selected] = !not_done[selected];
-            tasks[selected] = not_done[selected] ? task_copy[selected].substr(3)
-                                                 : tasks[selected];
-            icon[selected] = not_done[selected] ? cross : empty;
-            completion[selected] = 0;
+            comp_level[selected] = comp_level[selected] == 0 ? -1 : 0;
+            icon[selected] =
+                comp_level[selected] == 0 ? Glyph::cross : Glyph::empty;
             return true;
         }
 
         if (event == Event::p) {
-            done[selected] = false;
-            not_done[selected] = false;
             depth = 1;
+            return true;
         }
 
         if (event == Event::Escape || event == Event::q) {
             float aggregate_compl{0.0};
-            for (float value : completion)
+            for (float value : comp_level)
                 aggregate_compl += value;
             finishUP(aggregate_compl / tasks.size());
             screen.ExitLoopClosure()();
         }
         return false;
     });
-
-    // task_list |= Modal(modalC, &show_modal);
 
     auto task_renderer = Renderer(task_list, [&] {
         return task_list->Render() | vscroll_indicator | yframe |

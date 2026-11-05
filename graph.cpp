@@ -274,9 +274,9 @@ void Graph(bool interactive) {
             });
 
             renderer |= CatchEvent([&](Event event) {
-                if (event == Event::Character('q') || event == Event::Escape) {
-                    screen.ExitLoopClosure()();
-                    return true;
+                if (event == Event::q || event == Event::Escape) {
+                    // since it returns a fun we need second () to call it.
+                    screen.ExitLoopClosure()(); 
                 }
                 return false;
             });

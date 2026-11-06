@@ -16,6 +16,14 @@ const static inline ftxui::Color done = ftxui::Color::RGB(166, 227, 161);
 const static inline ftxui::Color not_done = ftxui::Color::RGB(255, 180, 171);
 }; // namespace CompColor
 
+ftxui::Color lerpColor(double t) { // t in [0,1]
+    auto lerp = [](int a, int b, double t) {
+        return static_cast<uint8_t>(a + (b - a) * t);
+    };
+    return ftxui::Color::RGB(lerp(255, 166, t), lerp(180, 227, t),
+                             lerp(171, 161, t));
+}
+
 namespace Glyph {
 static constexpr std::string_view empty{"   "};
 static constexpr std::string_view check{"  "};
@@ -105,7 +113,7 @@ void finishUP(float final_opacity) {
 
 // TODO: store entered completion value on task which resets everyday
 // TODO: add colors to percentage level from red green gradient
-// TODO: sort task on completion rate on startup 
+// TODO: sort task on completion rate on startup
 
 void Update() {
     using namespace ftxui;
@@ -133,22 +141,28 @@ void Update() {
 
     MenuOption opt;
     opt.entries_option.transform = [&](EntryState state) {
-        Element gutter = text(icon[state.index]);
-        Element label = text(state.label);
-        if (comp_level[state.index] == 1) {
-            gutter |= color(CompColor::done) | dim;
-            label = label | strikethrough | color(CompColor::done) | dim;
-        }
-        if (comp_level[state.index] == 0) {
-            gutter |= color(CompColor::not_done);
-            label = label | strikethrough | color(CompColor::not_done);
-        }
-        if (state.focused) {
-            // TODO: choose better hover color
-            gutter |= inverted;
-            label |= inverted;
-        }
-        return hbox({gutter, label});
+        const double level = comp_level[state.index];
+        const bool resolved = (level == 0.0 || level == 1.0);
+        const bool untouched = (level < 0);
+        const Color grey_blue = Color::RGB(148, 158, 166);
+
+        Color fg;
+        if (untouched)
+            fg = state.focused ? grey_blue : Color::RGB(255, 255, 255);
+        else
+            fg = lerpColor(level);
+
+        Element gutter = paragraph(icon[state.index]) | color(fg);
+        Element label = paragraph(state.label) | color(fg);
+        if (resolved)
+            label |= strikethrough;
+
+        auto hi = hbox({gutter, label});
+        if (resolved)
+            hi |= dim;
+        if (state.focused)
+            hi = hi | color(fg) | inverted;
+        return hi;
     };
 
     int selected = 0;
@@ -252,7 +266,8 @@ void Update() {
     });
 
     auto depth_0_renderer = Renderer(task_renderer, [&] {
-        return vbox({task_renderer->Render(), tooltip});
+        return vbox({task_renderer->Render(), tooltip}) |
+               size(WIDTH, EQUAL, 114);
     });
 
     auto whole = Container::Tab(

@@ -2,6 +2,8 @@
 #include <filesystem>
 #include <format>
 #include <fstream>
+#include <numeric>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -9,12 +11,8 @@
 
 #include <ftxui/ftxui.hpp>
 
+namespace fs = std::filesystem;
 namespace chrono = std::chrono;
-
-namespace CompColor {
-const static inline ftxui::Color done = ftxui::Color::RGB(166, 227, 161);
-const static inline ftxui::Color not_done = ftxui::Color::RGB(255, 180, 171);
-}; // namespace CompColor
 
 ftxui::Color lerpColor(double t) { // t in [0,1]
     auto lerp = [](int a, int b, double t) {
@@ -40,7 +38,9 @@ static constexpr std::string_view below100{"󰪤  "};
 
 std::string_view opacityToGlyph(float op) {
     using namespace Glyph;
-    if (op == 0)
+    if (op == -1)
+        return empty;
+    else if (op == 0)
         return cross;
     else if (op < 0.12)
         return below12;
@@ -62,9 +62,12 @@ std::string_view opacityToGlyph(float op) {
         return check;
 }
 
-void finishUP(float final_opacity) {
+void finishUP(float final_opacity, std::vector<double> compl_level,
+              std::vector<int> indices) {
     using namespace std;
-    const auto today = chrono::floor<chrono::days>(chrono::system_clock::now());
+    const auto now = chrono::system_clock::now();
+    const chrono::zoned_time zt{chrono::current_zone(), now};
+    const auto today = chrono::floor<chrono::days>(zt.get_local_time());
     const string todays_date = format("{:%Y/%m/%d}", today);
     const string current_year = format("{:%Y}", today);
     std::filesystem::path contribution_file_path{
@@ -108,40 +111,86 @@ void finishUP(float final_opacity) {
         contribution_file << format("{}\t{:.3}\n", dates[i], opacitys[i]);
     }
 
+    // std::ranges::sort(indices);
+    std::vector<double> sorted_comp(compl_level.size());
+    // sorted_comp.reserve(compl_level.size());
+    for(size_t i=0; i<indices.size(); ++i){
+        sorted_comp[indices[i]] = compl_level[i];
+    }
+    std::ofstream compl_file{"completion.txt"};
+    for (double x : sorted_comp) {
+        compl_file << x << '\n';
+    }
     return;
 }
 
-// TODO: store entered completion value on task which resets everyday
-// TODO: add colors to percentage level from red green gradient
-// TODO: sort task on completion rate on startup
+std::vector<int> startUP(std::vector<double>& compl_level) {
+    auto now = chrono::system_clock::now();
+    chrono::zoned_time zt{chrono::current_zone(), now};
+    auto today = chrono::floor<chrono::days>(zt.get_local_time());
+    std::string todays_date = format("{:%Y/%m/%d}", today);
+
+    fs::path path{"completion.txt"};
+    auto lwt{fs::last_write_time(path)};
+    auto s_lwt = chrono::clock_cast<chrono::system_clock>(lwt);
+    chrono::zoned_time z_lwt{chrono::current_zone(), s_lwt};
+    std::string last_modified = format("{:%Y/%m/%d}", z_lwt);
+
+    std::ifstream compl_file{path};
+    std::stringstream abc;
+    abc << compl_file.rdbuf();
+    double lvl;
+    if (todays_date != last_modified) {
+        while (abc >> lvl)
+            compl_level.push_back(-1);
+    } else {
+        while (abc >> lvl) {
+            compl_level.push_back(lvl);
+        }
+    }
+    std::vector<int> indices(compl_level.size());
+    std::iota(indices.begin(), indices.end(), 0);
+
+    if (todays_date == last_modified) {
+        std::ranges::stable_sort(indices, [&](int A, int B) -> bool {
+            return compl_level[A] < compl_level[B];
+        });
+        std::ranges::stable_sort(compl_level);
+    }
+
+    return std::move(indices);
+}
 
 void Update() {
     using namespace ftxui;
 
     auto screen = App::TerminalOutput();
-    std::ifstream file{"tasks.txt"};
 
-    std::vector<std::string> tasks;
+    std::vector<double> compl_levels;
+    std::vector<int> indices = startUP(compl_levels);
 
+    const int tasks_len = compl_levels.size();
+    std::ifstream task_file{"tasks.txt"};
     std::string task;
-    while (getline(file, task)) {
-        tasks.push_back(task);
-    }
-    file.close();
-
-    const int vec_sizes = tasks.size();
-    std::vector<double> comp_level;
-    comp_level.reserve(vec_sizes);
+    std::vector<std::string> unsorted_tasks;
+    unsorted_tasks.reserve(tasks_len);
     std::vector<std::string_view> icon;
-    icon.reserve(vec_sizes);
-    for (int i = 0; i < vec_sizes; ++i) {
-        comp_level.emplace_back(-1);
-        icon.emplace_back(Glyph::empty);
+    icon.reserve(tasks_len);
+    for (int i = 0; getline(task_file, task); ++i) {
+        unsorted_tasks.emplace_back(task);
+        icon.emplace_back(opacityToGlyph(compl_levels[i]));
     }
+    std::vector<std::string> tasks;
+    tasks.reserve(tasks_len);
+    for(int idx: indices)
+        tasks.emplace_back(unsorted_tasks[idx]);
+    tasks.reserve(tasks_len);
+    
+    task_file.close();
 
     MenuOption opt;
     opt.entries_option.transform = [&](EntryState state) {
-        const double level = comp_level[state.index];
+        const double level = compl_levels[state.index];
         const bool resolved = (level == 0.0 || level == 1.0);
         const bool untouched = (level < 0);
         const Color grey_blue = Color::RGB(148, 158, 166);
@@ -199,7 +248,7 @@ void Update() {
                 v = 1;
             else
                 v = v / 100;
-            comp_level[selected] = v;
+            compl_levels[selected] = v;
             icon[selected] = opacityToGlyph(v);
             input_text.clear();
             depth = 0;
@@ -212,25 +261,25 @@ void Update() {
 
     Component depth_1 = Window({
         .inner = input,
-        .title = "Percentage",
+        .title = "Completion %",
         .width = 20,
         .height = 3,
     });
 
-    auto task_list = Menu(&tasks, &selected, opt);
+    auto task_menu = Menu(&tasks, &selected, opt);
 
-    task_list |= CatchEvent([&](Event event) {
+    task_menu |= CatchEvent([&](Event event) {
         if (event == Event::Return) {
-            comp_level[selected] = comp_level[selected] == 1 ? -1 : 1;
+            compl_levels[selected] = compl_levels[selected] == 1 ? -1 : 1;
             icon[selected] =
-                comp_level[selected] == 1 ? Glyph::check : Glyph::empty;
+                compl_levels[selected] == 1 ? Glyph::check : Glyph::empty;
             return true;
         }
 
         if (event == Event::x) {
-            comp_level[selected] = comp_level[selected] == 0 ? -1 : 0;
+            compl_levels[selected] = compl_levels[selected] == 0 ? -1 : 0;
             icon[selected] =
-                comp_level[selected] == 0 ? Glyph::cross : Glyph::empty;
+                compl_levels[selected] == 0 ? Glyph::cross : Glyph::empty;
             return true;
         }
 
@@ -241,16 +290,16 @@ void Update() {
 
         if (event == Event::Escape || event == Event::q) {
             float aggregate_compl{0.0};
-            for (float value : comp_level)
+            for (float value : compl_levels)
                 aggregate_compl += value;
-            finishUP(aggregate_compl / tasks.size());
+            finishUP(aggregate_compl / tasks_len, compl_levels, indices);
             screen.ExitLoopClosure()();
         }
         return false;
     });
 
-    auto task_renderer = Renderer(task_list, [&] {
-        return task_list->Render() | vscroll_indicator | yframe |
+    auto task_renderer = Renderer(task_menu, [&] {
+        return task_menu->Render() | vscroll_indicator | yframe |
                size(HEIGHT, LESS_THAN, 8) | border;
     });
 
@@ -266,8 +315,7 @@ void Update() {
     });
 
     auto depth_0_renderer = Renderer(task_renderer, [&] {
-        return vbox({task_renderer->Render(), tooltip}) |
-               size(WIDTH, EQUAL, 114);
+        return vbox({task_renderer->Render(), tooltip});
     });
 
     auto whole = Container::Tab(
@@ -286,7 +334,7 @@ void Update() {
                 depth_1->Render() | clear_under | center,
             });
         }
-        return document;
+        return document | size(WIDTH, EQUAL, 114);
     });
 
     screen.Loop(main_renderer);

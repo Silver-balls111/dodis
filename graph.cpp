@@ -270,7 +270,7 @@ void Graph(bool interactive) {
                      size(HEIGHT, LESS_THAN, 8)});
 
             auto renderer = Renderer(whole, [&] {
-                return whole->Render();
+                return whole->Render() | size(WIDTH, EQUAL, 118);
             });
 
             renderer |= CatchEvent([&](Event event) {
@@ -282,9 +282,11 @@ void Graph(bool interactive) {
             });
             screen.Loop(renderer);
         } else {
-            const auto today =
-                chrono::floor<std::chrono::days>(chrono::system_clock::now());
-            chrono::year_month_day ymd = today;
+            auto now {chrono::system_clock::now()};
+            const chrono::zoned_time zt {chrono::current_zone(), now};
+            auto ymd = chrono::year_month_day{
+                chrono::floor<chrono::days>(zt.get_local_time())
+            };
 
             // TODO: make tooltip show the contribution for the day when it was
             // run when triggered through update()

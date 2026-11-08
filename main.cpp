@@ -17,6 +17,8 @@ int main(const int argc, const char **argkv){
         }
         else if(!strcmp(argkv[1], "-u")){
             Update();
+            // NOTE: not whether to use this or altscreen.
+            // std::cout << "\033[2J\033[H" << std::flush; // clear screen, cursor to top-left
             Graph(false);
             return 0;
         }

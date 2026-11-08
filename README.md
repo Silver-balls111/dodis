@@ -27,7 +27,6 @@
   
 **To-Do**:
   - Add option to allow editing the task file.
-  - Make update() in ftxui.
   - Support image to be used in contribution graph.
   - Add some premade color pallete to match starter images.
   - Make the file path independent of the executable path
@@ -38,3 +37,4 @@
   - Add horizontal scroller to the graph. [done]
   - Make the cells hoverable and display the date in bottom. [done]
   - Make create ui in ftxui. [done]
+  - Make update() in ftxui. [done]

@@ -47,7 +47,8 @@ void rebuildGrid(Component &hbox_comp, const std::vector<Component> &tiles) {
 }
 
 void rebuildTiles(const chrono::year &choosen_year,
-                  std::vector<Component> &tiles, std::string &tooltip_content) {
+                  std::vector<Component> &tiles, std::string &tooltip_content,
+                  bool interactive) {
     unsigned int jan1 = weekDayNum(choosen_year / chrono::January / 1);
     unsigned int dec31 = weekDayNum(choosen_year / chrono::December / 31);
 
@@ -118,9 +119,13 @@ void rebuildTiles(const chrono::year &choosen_year,
     for (double opacity : opacitys)
         sum += opacity;
 
-    tooltip_content =
-        std::format("Average rate of completion for {} is {:.3}%.",
-                    choosen_year, sum / 365 * 100);
+    if (!interactive)
+        tooltip_content = std::format(" {:.3}% of today's task completed.",
+                                      opacitys.back() * 100);
+    else
+        tooltip_content =
+            std::format(" Average rate of completion for {} is {:.2}%.",
+                        choosen_year, sum / 365 * 100);
 
     for (size_t i = 0; i < week_num.size(); ++i) {
         chrono::year_month_day date =
@@ -130,7 +135,7 @@ void rebuildTiles(const chrono::year &choosen_year,
         if (opacitys[i] == 0)
             op_label = "No task done";
         std::string label = std::format(
-            "{} on {:%A}, {:%b} {}, {}.", op_label, chrono::weekday(day_num[i]),
+            " {} on {:%A}, {:%b} {}, {}.", op_label, chrono::weekday(day_num[i]),
             date.month(), getSuffixedDate(static_cast<unsigned>(date.day())),
             date.year());
 
@@ -172,8 +177,7 @@ void Graph(bool interactive) {
 
         std::string tooltip_content;
         auto tooltip = Renderer([&] {
-            return hbox({text(tooltip_content),
-                         filler(), text("Less "),
+            return hbox({text(tooltip_content), filler(), text("Less "),
                          text(" ") | color(opacityToColor(0)),
                          text(" ") | color(opacityToColor(0.25)),
                          text(" ") | color(opacityToColor(0.5)),
@@ -208,7 +212,7 @@ void Graph(bool interactive) {
             std::ranges::sort(file_names,
                               std::greater<chrono::year>()); // descending order
 
-            rebuildTiles(file_names[0], tiles, tooltip_content);
+            rebuildTiles(file_names[0], tiles, tooltip_content, interactive);
             rebuildGrid(hbox_comp, tiles);
 
             auto style =
@@ -217,7 +221,7 @@ void Graph(bool interactive) {
             auto buttons = Container::Vertical({});
 
             auto onYearSelected = [&](chrono::year file) {
-                rebuildTiles(file, tiles, tooltip_content);
+                rebuildTiles(file, tiles, tooltip_content, interactive);
                 rebuildGrid(hbox_comp, tiles);
             };
 
@@ -270,25 +274,26 @@ void Graph(bool interactive) {
                      size(HEIGHT, LESS_THAN, 8)});
 
             auto renderer = Renderer(whole, [&] {
-                return whole->Render();
+                return whole->Render() | size(WIDTH, EQUAL, 118);
             });
 
             renderer |= CatchEvent([&](Event event) {
-                if (event == Event::Character('q') || event == Event::Escape) {
+                if (event == Event::q || event == Event::Escape) {
+                    // since it returns a fun we need second () to call it.
                     screen.ExitLoopClosure()();
-                    return true;
                 }
                 return false;
             });
             screen.Loop(renderer);
         } else {
-            const auto today =
-                chrono::floor<std::chrono::days>(chrono::system_clock::now());
-            chrono::year_month_day ymd = today;
+            auto now{chrono::system_clock::now()};
+            const chrono::zoned_time zt{chrono::current_zone(), now};
+            auto ymd = chrono::year_month_day{
+                chrono::floor<chrono::days>(zt.get_local_time())};
 
             // TODO: make tooltip show the contribution for the day when it was
             // run when triggered through update()
-            rebuildTiles(ymd.year(), tiles, tooltip_content);
+            rebuildTiles(ymd.year(), tiles, tooltip_content, interactive);
             rebuildGrid(hbox_comp, tiles);
 
             auto whole = Container::Horizontal(

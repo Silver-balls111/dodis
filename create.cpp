@@ -10,9 +10,14 @@
 void Create() {
     using namespace ftxui;
 
-    std::ofstream file{"tasks.txt"};
-    if (!file) {
+    std::ofstream task_file{"tasks.txt"};
+    std::ofstream compl_file{"completion.txt"};
+    if (!task_file) {
         std::cerr << "Error: Opening \"tasks.txt\" file.";
+        return;
+    }
+    if (!compl_file) {
+        std::cerr << "Error: Opening \"completion.txt\" file.";
         return;
     }
 
@@ -42,8 +47,9 @@ void Create() {
         app.PrintAbove(hbox({text("    │ ") | color(Color::GreenLight) | dim,
                              text("• "), paragraph(input_text)}));
 
-        file << input_text << '\n';
-        file.flush();
+        task_file << input_text << '\n';
+        compl_file << -1 << '\n';
+        task_file.flush();
         input_text.clear();
         return true;
     });
@@ -53,9 +59,9 @@ void Create() {
     auto conditional_empty_msg = empty_list_msg | Maybe(&empty_list);
 
     auto hints = hbox({
-        text("Enter ") | bold | dim,
-        text("add · ") | dim,
-        text("Esc ") | bold | dim,
+        text("Enter ") | bold,
+        text("add | ") | dim,
+        text("Esc ") | bold,
         text("finish") | dim,
     });
     auto renderer = Renderer(input, [&] {

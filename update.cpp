@@ -114,7 +114,7 @@ void finishUP(float final_opacity, std::vector<double> compl_level,
     // std::ranges::sort(indices);
     std::vector<double> sorted_comp(compl_level.size());
     // sorted_comp.reserve(compl_level.size());
-    for(size_t i=0; i<indices.size(); ++i){
+    for (size_t i = 0; i < indices.size(); ++i) {
         sorted_comp[indices[i]] = compl_level[i];
     }
     std::ofstream compl_file{"completion.txt"};
@@ -124,7 +124,7 @@ void finishUP(float final_opacity, std::vector<double> compl_level,
     return;
 }
 
-std::vector<int> startUP(std::vector<double>& compl_level) {
+std::vector<int> startUP(std::vector<double> &compl_level) {
     auto now = chrono::system_clock::now();
     chrono::zoned_time zt{chrono::current_zone(), now};
     auto today = chrono::floor<chrono::days>(zt.get_local_time());
@@ -164,7 +164,9 @@ std::vector<int> startUP(std::vector<double>& compl_level) {
 void Update() {
     using namespace ftxui;
 
-    auto screen = App::TerminalOutput();
+    // NOTE: not sure whether to use altscr or just clear in main() using ansi
+    // escp
+    auto screen = App::FullscreenAlternateScreen();
 
     std::vector<double> compl_levels;
     std::vector<int> indices = startUP(compl_levels);
@@ -182,10 +184,10 @@ void Update() {
     }
     std::vector<std::string> tasks;
     tasks.reserve(tasks_len);
-    for(int idx: indices)
+    for (int idx : indices)
         tasks.emplace_back(unsorted_tasks[idx]);
     tasks.reserve(tasks_len);
-    
+
     task_file.close();
 
     MenuOption opt;
@@ -201,12 +203,13 @@ void Update() {
         else
             fg = lerpColor(level);
 
+        Element l_padding = text(" ");
         Element gutter = paragraph(icon[state.index]) | color(fg);
         Element label = paragraph(state.label) | color(fg);
         if (resolved)
             label |= strikethrough;
 
-        auto hi = hbox({gutter, label});
+        auto hi = hbox({l_padding, gutter, label});
         if (resolved)
             hi |= dim;
         if (state.focused)

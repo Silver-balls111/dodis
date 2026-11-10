@@ -293,8 +293,11 @@ void Update() {
 
         if (event == Event::Escape || event == Event::q) {
             float aggregate_compl{0.0};
-            for (float value : compl_levels)
+            for (float value : compl_levels) {
+                if (value == -1)
+                    continue;
                 aggregate_compl += value;
+            }
             finishUP(aggregate_compl / tasks_len, compl_levels, indices);
             screen.ExitLoopClosure()();
         }

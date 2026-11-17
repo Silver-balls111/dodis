@@ -10,6 +10,7 @@ target_sources(
         update.cpp
         graph.cpp
         help.cpp
+        editor.cpp
         helpers/monthInfo.cpp
         helpers/conversions.cpp
 )

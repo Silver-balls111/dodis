@@ -221,15 +221,15 @@ void Update() {
     int depth{0};
     std::string input_text;
 
-    std::string placehol = "0-100";
+    std::string placeholder = "0-100";
     InputOption ip_opt;
     ip_opt.transform = [](InputState s) {
         if (s.is_placeholder)
-            s.element |= dim;
+            s.element |= color(Color::RGB(255, 255, 255)) | dim;
         return hbox({text(" ") | color(Color::Green) | bold,
-                     s.element}); // chevron right - f054
+                     s.element | color(Color::RGB(255, 255, 255))}); // chevron right - f054
     };
-    auto input = Input(&input_text, &placehol, ip_opt);
+    auto input = Input(&input_text, &placeholder, ip_opt);
     input |= CatchEvent([&](Event event) {
         if (event == Event::Escape) {
             input_text.clear();
@@ -257,17 +257,17 @@ void Update() {
             depth = 0;
         } catch (std::invalid_argument) {
             input_text.clear();
-            placehol = "Invalid value";
+            placeholder = "Invalid value";
         }
         return true;
     });
 
-    Component depth_1 = Window({
-        .inner = input,
-        .title = "Completion %",
-        .width = 20,
-        .height = 3,
-    });
+    // Component depth_1 = Window({
+    //     .inner = input,
+    //     .title = "Completion %",
+    //     .width = 20,
+    //     .height = 3,
+    // });
 
     auto task_menu = Menu(&tasks, &selected, opt);
 
@@ -324,10 +324,18 @@ void Update() {
         return vbox({task_renderer->Render(), tooltip});
     });
 
+    auto depth_1_renderer = Renderer(input, [&]{
+        return window(text("Completion %"), 
+                      input->Render()
+                      ) | color(Color::Green) 
+                        | size(WIDTH, EQUAL, 20) 
+                        | size(HEIGHT, EQUAL, 3);
+    });
+
     auto whole = Container::Tab(
         {
             depth_0_renderer,
-            depth_1,
+            depth_1_renderer,
         },
         &depth);
 
@@ -337,7 +345,7 @@ void Update() {
         if (depth == 1) {
             document = dbox({
                 document,
-                depth_1->Render() | clear_under | center,
+               depth_1_renderer->Render() | clear_under | center,
             });
         }
         return document | size(WIDTH, EQUAL, 114);

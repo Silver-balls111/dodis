@@ -26,15 +26,15 @@
   ```
   
 **To-Do**:
-  - Add option to allow editing the task file.
-  - Support image to be used in contribution graph.
   - Add some premade color pallete to match starter images.
+  - Support image to be used in contribution graph.
   - Make the file path independent of the executable path
   - Create help()       [done.]
-  - Support multiple year.      *done*
+  - Support multiple year.      [done]
   - Choose a suitable default color for the graph.      [done choose grey.]
   - Fix gaps between months to be proper    [done]
   - Add horizontal scroller to the graph. [done]
   - Make the cells hoverable and display the date in bottom. [done]
   - Make create ui in ftxui. [done]
   - Make update() in ftxui. [done]
+  - Add option to allow editing the task file. [done]

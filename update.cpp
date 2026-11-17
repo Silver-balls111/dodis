@@ -166,7 +166,7 @@ void Update() {
 
     // NOTE: not sure whether to use altscr or just clear in main() using ansi
     // escp
-    auto screen = App::FullscreenAlternateScreen();
+    auto screen = App::TerminalOutput();
 
     std::vector<double> compl_levels;
     std::vector<int> indices = startUP(compl_levels);
@@ -306,11 +306,11 @@ void Update() {
 
     auto task_renderer = Renderer(task_menu, [&] {
         return task_menu->Render() | vscroll_indicator | yframe |
-               size(HEIGHT, LESS_THAN, 8) | border;
+               size(HEIGHT, LESS_THAN, 8) | borderStyled(Color::Green);
     });
 
     auto tooltip = hbox({
-        text("Enter ") | bold,
+        text(" Enter ") | bold,
         text("mark done | ") | dim,
         text("x ") | bold,
         text("mark not done | ") | dim,

@@ -11,6 +11,8 @@
 
 #include <ftxui/ftxui.hpp>
 
+#include "helpers/colors.hpp"
+
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;
 
@@ -195,11 +197,11 @@ void Update() {
         const double level = compl_levels[state.index];
         const bool resolved = (level == 0.0 || level == 1.0);
         const bool untouched = (level < 0);
-        const Color grey_blue = Color::RGB(148, 158, 166);
+        const Color grey_blue = pallete::hover_bg;
 
         Color fg;
         if (untouched)
-            fg = state.focused ? grey_blue : Color::RGB(255, 255, 255);
+            fg = state.focused ? grey_blue : pallete::text;
         else
             fg = lerpColor(level);
 
@@ -225,9 +227,11 @@ void Update() {
     InputOption ip_opt;
     ip_opt.transform = [](InputState s) {
         if (s.is_placeholder)
-            s.element |= color(Color::RGB(255, 255, 255)) | dim;
-        return hbox({text(" ") | color(Color::Green) | bold,
-                     s.element | color(Color::RGB(255, 255, 255))}); // chevron right - f054
+            s.element |= color(pallete::text) | dim;
+        return hbox({
+            text(" ") | color(pallete::border) | bold,
+            s.element | color(pallete::text)
+        }); // chevron right - f054
     };
     auto input = Input(&input_text, &placeholder, ip_opt);
     input |= CatchEvent([&](Event event) {
@@ -242,6 +246,8 @@ void Update() {
             return true;
         try {
             double v{0.0};
+            // NOTE: stof will work as long as text starts with a float value
+            // so no need to check for % or anything else.
             if (input_text.ends_with('%'))
                 input_text = input_text.substr(0, input_text.size() - 1);
             v = std::stof(input_text);
@@ -306,7 +312,7 @@ void Update() {
 
     auto task_renderer = Renderer(task_menu, [&] {
         return task_menu->Render() | vscroll_indicator | yframe |
-               size(HEIGHT, LESS_THAN, 8) | borderStyled(Color::Green);
+               size(HEIGHT, LESS_THAN, 8) | borderStyled(pallete::border);
     });
 
     auto tooltip = hbox({
@@ -318,16 +324,16 @@ void Update() {
         text("percentage | ") | dim,
         text("Esc/q ") | bold,
         text("finish") | dim,
-    });
+    }) | color(pallete::text);
 
     auto depth_0_renderer = Renderer(task_renderer, [&] {
         return vbox({task_renderer->Render(), tooltip});
     });
 
     auto depth_1_renderer = Renderer(input, [&]{
-        return window(text("Completion %"), 
+        return window(text("Completion %") | color(pallete::heading1) | bold, 
                       input->Render()
-                      ) | color(Color::Green) 
+                      ) | color(pallete::border) 
                         | size(WIDTH, EQUAL, 20) 
                         | size(HEIGHT, EQUAL, 3);
     });

@@ -7,6 +7,8 @@
 #include "ftxui/component/event.hpp"     // for Event
 #include "ftxui/dom/elements.hpp"        // for text, paragraph, vbox
 
+#include "helpers/colors.hpp"
+
 void Create() {
     using namespace ftxui;
 
@@ -28,8 +30,8 @@ void Create() {
     opt.transform = [](InputState s) {
         if (s.is_placeholder)
             s.element |= dim;
-        return hbox({text(" ") | color(Color::Green) | bold,
-                     s.element}); // chevron right - f054
+        return hbox({text(" ") | color(pallete::border) | bold,
+                     s.element | color(pallete::text)}); // chevron right - f054
     };
     auto input = Input(&input_text, "add a task…", opt);
 
@@ -44,12 +46,14 @@ void Create() {
             return true;
         }
         empty_list = false;
-        app.PrintAbove(hbox({text("    │ ") | color(Color::GreenLight) | dim,
-                             text("• "), paragraph(input_text)}));
+        app.PrintAbove(hbox({
+            text("    │ ") | color(pallete::border) | dim,
+            text("• ") | color(pallete::border), 
+            paragraph(input_text) | color(pallete::text)
+        }));
 
         task_file << input_text << '\n';
         compl_file << -1 << '\n';
-        task_file.flush();
         input_text.clear();
         return true;
     });
@@ -63,11 +67,11 @@ void Create() {
         text("add | ") | dim,
         text("Esc ") | bold,
         text("finish") | dim,
-    });
+    }) | color(pallete::text);
     auto renderer = Renderer(input, [&] {
         return vbox({
                    conditional_empty_msg->Render(),
-                   separatorHeavy() | color(Color::Green),
+                   separatorHeavy() | color(pallete::border),
                    input->Render(),
                    hints,
                }) |
@@ -76,8 +80,8 @@ void Create() {
 
     app.PrintAbove(
         vbox({
-            text("To Do List") | bold | hcenter | color(Color::Green),
-            separator() | color(Color::Green),
+            text("To Do List") | bold | hcenter | color(pallete::heading1),
+            separator() | color(pallete::border),
         }) |
         size(WIDTH, LESS_THAN, 114));
     app.RequestAnimationFrame();

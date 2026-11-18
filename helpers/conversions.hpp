@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ftxui/screen/color.hpp"
+#include "colors.hpp"
 #include <chrono>
 #include <string>
 

@@ -71,7 +71,7 @@ void Create() {
                    input->Render(),
                    hints,
                }) |
-               size(WIDTH, LESS_THAN, 90);
+               size(WIDTH, LESS_THAN, 114);
     });
 
     app.PrintAbove(
@@ -79,7 +79,7 @@ void Create() {
             text("To Do List") | bold | hcenter | color(Color::Green),
             separator() | color(Color::Green),
         }) |
-        size(WIDTH, LESS_THAN, 90));
+        size(WIDTH, LESS_THAN, 114));
     app.RequestAnimationFrame();
 
     app.Loop(renderer);

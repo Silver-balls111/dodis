@@ -1,5 +1,6 @@
 #include <cstring>
 #include <iostream>
+#include <filesystem>
 
 void Create();
 void Update();
@@ -9,7 +10,11 @@ void Edit();
 
 int main(const int argc, const char **argkv){
     if(argc == 1){
-        Help();
+        std::filesystem::path path {"tasks.txt"};
+        if (!std::filesystem::exists(path) || std::filesystem::is_empty(path))
+            Create();
+        else
+            Update();
     }
     else if(argc == 2){
         if(!strcmp(argkv[1], "-c")){     //strcmp return 0 if equal so !
@@ -29,6 +34,10 @@ int main(const int argc, const char **argkv){
         }
         else if(!strcmp(argkv[1], "-e")){
             Edit();
+            return 0;
+        }
+        else if(!strcmp(argkv[1], "-h")){
+            Help();
             return 0;
         }
         else{

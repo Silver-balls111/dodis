@@ -11,8 +11,10 @@ target_sources(
         graph.cpp
         help.cpp
         editor.cpp
+        helpers/colors.cpp
         helpers/monthInfo.cpp
         helpers/conversions.cpp
+        helpers/theme_switcher.cpp
 )
 
 include(FetchContent)

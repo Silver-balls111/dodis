@@ -7,6 +7,7 @@ void Update();
 void Graph(bool interactive);
 void Help();
 void Edit();
+void themeSwitcher();
 
 int main(const int argc, const char **argkv){
     if(argc == 1){
@@ -34,6 +35,10 @@ int main(const int argc, const char **argkv){
         }
         else if(!strcmp(argkv[1], "-e")){
             Edit();
+            return 0;
+        }
+        else if(!strcmp(argkv[1], "-t")){
+            themeSwitcher();
             return 0;
         }
         else if(!strcmp(argkv[1], "-h")){

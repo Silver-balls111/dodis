@@ -197,11 +197,11 @@ void Update() {
         const double level = compl_levels[state.index];
         const bool resolved = (level == 0.0 || level == 1.0);
         const bool untouched = (level < 0);
-        const Color grey_blue = pallete::hover_bg;
+        const Color grey_blue = Pallete::hover_bg;
 
         Color fg;
         if (untouched)
-            fg = state.focused ? grey_blue : pallete::text;
+            fg = state.focused ? grey_blue : Pallete::text;
         else
             fg = lerpColor(level);
 
@@ -227,10 +227,10 @@ void Update() {
     InputOption ip_opt;
     ip_opt.transform = [](InputState s) {
         if (s.is_placeholder)
-            s.element |= color(pallete::text) | dim;
+            s.element |= color(Pallete::text) | dim;
         return hbox({
-            text(" ") | color(pallete::border) | bold,
-            s.element | color(pallete::text)
+            text(" ") | color(Pallete::border) | bold,
+            s.element | color(Pallete::text)
         }); // chevron right - f054
     };
     auto input = Input(&input_text, &placeholder, ip_opt);
@@ -312,7 +312,7 @@ void Update() {
 
     auto task_renderer = Renderer(task_menu, [&] {
         return task_menu->Render() | vscroll_indicator | yframe |
-               size(HEIGHT, LESS_THAN, 8) | borderStyled(pallete::border);
+               size(HEIGHT, LESS_THAN, 8) | borderStyled(Pallete::border);
     });
 
     auto tooltip = hbox({
@@ -324,16 +324,16 @@ void Update() {
         text("percentage | ") | dim,
         text("Esc/q ") | bold,
         text("finish") | dim,
-    }) | color(pallete::text);
+    }) | color(Pallete::text);
 
     auto depth_0_renderer = Renderer(task_renderer, [&] {
         return vbox({task_renderer->Render(), tooltip});
     });
 
     auto depth_1_renderer = Renderer(input, [&]{
-        return window(text("Completion %") | color(pallete::heading1) | bold, 
+        return window(text("Completion %") | color(Pallete::heading1) | bold, 
                       input->Render()
-                      ) | color(pallete::border) 
+                      ) | color(Pallete::border) 
                         | size(WIDTH, EQUAL, 20) 
                         | size(HEIGHT, EQUAL, 3);
     });

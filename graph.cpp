@@ -27,7 +27,7 @@ inline Component getEmptyTile() {
 
 Component getHoverableTile(std::string &tooltip_content,
                            const std::string on_enter_text,
-                           const Color tile_color = pallete::tile_0) {
+                           const Color tile_color = Pallete::tile_0) {
     auto block = Renderer(
         [=] { return text("") | color(tile_color); }); // nerd-font f0c8
 
@@ -155,7 +155,7 @@ void Graph(bool interactive) {
         std::vector<std::string> days{"   ", "Sun", "Mon", "Tue",
                                       "Wed", "Thu", "Fri", "Sat"};
         for (auto x : days) {
-            day.push_back(text(x) | bold | color(pallete::heading1));
+            day.push_back(text(x) | bold | color(Pallete::heading1));
         }
         auto day_comp =
             Renderer([&] { return vbox(day) | size(WIDTH, EQUAL, 5); });
@@ -167,7 +167,7 @@ void Graph(bool interactive) {
                                         "Sep", "Oct", "Nov", "Dec"};
         for (size_t i = 0; i < months.size(); ++i) {
             month.push_back(text("  ")); // 2 spaces
-            month.push_back(text(months[i]) | bold | color(pallete::heading1));
+            month.push_back(text(months[i]) | bold | color(Pallete::heading1));
             month.push_back(text("  ")); // 2 spaces
             if (i % 2 == 0) {
                 month.push_back(text(" "));
@@ -178,15 +178,15 @@ void Graph(bool interactive) {
 
         std::string tooltip_content;
         auto tooltip = Renderer([&] {
-            return hbox({text(tooltip_content) | color(pallete::text)
-                        , filler(), text("Less ") | color(pallete::text),
+            return hbox({text(tooltip_content) | color(Pallete::text)
+                        , filler(), text("Less ") | color(Pallete::text),
                          text(" ") | color(opacityToColor(0)),
                          text(" ") | color(opacityToColor(0.25)),
                          text(" ") | color(opacityToColor(0.5)),
                          text(" ") | color(opacityToColor(0.75)),
                          text(" ") | color(opacityToColor(1)),
-                         text("More ") | color(pallete::text)}) |
-                   borderRounded | color(pallete::border);
+                         text("More ") | color(Pallete::text)}) |
+                   borderRounded | color(Pallete::border);
         });
 
         auto hbox_comp = Container::Horizontal({});
@@ -219,7 +219,7 @@ void Graph(bool interactive) {
 
             auto style =
                 ButtonOption::Animated(Color::Default, Color::Grey62,
-                                       Color::Default, pallete::hover_bg);
+                                       Color::Default, Pallete::hover_bg);
             auto buttons = Container::Vertical({});
 
             auto onYearSelected = [&](chrono::year file) {
@@ -243,8 +243,8 @@ void Graph(bool interactive) {
             option_x.increment = 0.1f;
             option_x.label = " ";
             option_x.direction = Direction::Right;
-            option_x.color_active = pallete::tile_100;
-            option_x.color_inactive = pallete::hover_bg;
+            option_x.color_active = Pallete::tile_100;
+            option_x.color_inactive = Pallete::hover_bg;
 
             // NOTE: option.lable is only available in my fork of ftxui
             auto scrollbar_x = Slider(option_x);

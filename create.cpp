@@ -30,8 +30,8 @@ void Create() {
     opt.transform = [](InputState s) {
         if (s.is_placeholder)
             s.element |= dim;
-        return hbox({text(" ") | color(pallete::border) | bold,
-                     s.element | color(pallete::text)}); // chevron right - f054
+        return hbox({text(" ") | color(Pallete::border) | bold,
+                     s.element | color(Pallete::text)}); // chevron right - f054
     };
     auto input = Input(&input_text, "add a task…", opt);
 
@@ -47,9 +47,9 @@ void Create() {
         }
         empty_list = false;
         app.PrintAbove(hbox({
-            text("    │ ") | color(pallete::border) | dim,
-            text("• ") | color(pallete::border), 
-            paragraph(input_text) | color(pallete::text)
+            text("    │ ") | color(Pallete::border) | dim,
+            text("• ") | color(Pallete::border), 
+            paragraph(input_text) | color(Pallete::text)
         }));
 
         task_file << input_text << '\n';
@@ -67,11 +67,11 @@ void Create() {
         text("add | ") | dim,
         text("Esc ") | bold,
         text("finish") | dim,
-    }) | color(pallete::text);
+    }) | color(Pallete::text);
     auto renderer = Renderer(input, [&] {
         return vbox({
                    conditional_empty_msg->Render(),
-                   separatorHeavy() | color(pallete::border),
+                   separatorHeavy() | color(Pallete::border),
                    input->Render(),
                    hints,
                }) |
@@ -80,8 +80,8 @@ void Create() {
 
     app.PrintAbove(
         vbox({
-            text("To Do List") | bold | hcenter | color(pallete::heading1),
-            separator() | color(pallete::border),
+            text("To Do List") | bold | hcenter | color(Pallete::heading1),
+            separator() | color(Pallete::border),
         }) |
         size(WIDTH, LESS_THAN, 114));
     app.RequestAnimationFrame();

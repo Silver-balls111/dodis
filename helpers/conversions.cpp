@@ -1,4 +1,5 @@
 #include "conversions.hpp"
+#include "colors.hpp"
 
 namespace chrono = std::chrono;
 
@@ -34,12 +35,12 @@ std::string getSuffixedDate(const unsigned int day) {
 
 ftxui::Color opacityToColor(const double opacity) {
     if (opacity == 0)
-        return pallete::tile_0;
+        return Pallete::tile_0;
     if (opacity <= 0.25)
-        return pallete::tile_25;
+        return Pallete::tile_25;
     if (opacity <= 0.50)
-        return pallete::tile_50;
+        return Pallete::tile_50;
     if (opacity <= 0.75)
-        return pallete::tile_75;
-    return pallete::tile_100;
+        return Pallete::tile_75;
+    return Pallete::tile_100;
 }

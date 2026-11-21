@@ -1,6 +1,6 @@
+#include "helpers/colors.hpp"
 #include "helpers/conversions.hpp"
 #include "helpers/monthInfo.hpp"
-#include "helpers/colors.hpp"
 #include <chrono>
 #include <filesystem>
 #include <fstream>
@@ -136,9 +136,9 @@ void rebuildTiles(const chrono::year &choosen_year,
         if (opacitys[i] == 0)
             op_label = "No task done";
         std::string label = std::format(
-            " {} on {:%A}, {:%b} {}, {}.", op_label, chrono::weekday(day_num[i]),
-            date.month(), getSuffixedDate(static_cast<unsigned>(date.day())),
-            date.year());
+            " {} on {:%A}, {:%b} {}, {}.", op_label,
+            chrono::weekday(day_num[i]), date.month(),
+            getSuffixedDate(static_cast<unsigned>(date.day())), date.year());
 
         tiles[7 * 2 * week_num[i] + day_num[i]] = getHoverableTile(
             tooltip_content, label, opacityToColor(opacitys[i]));
@@ -178,8 +178,8 @@ void Graph(bool interactive) {
 
         std::string tooltip_content;
         auto tooltip = Renderer([&] {
-            return hbox({text(tooltip_content) | color(Pallete::text)
-                        , filler(), text("Less ") | color(Pallete::text),
+            return hbox({text(tooltip_content) | color(Pallete::text), filler(),
+                         text("Less ") | color(Pallete::text),
                          text(" ") | color(opacityToColor(0)),
                          text(" ") | color(opacityToColor(0.25)),
                          text(" ") | color(opacityToColor(0.5)),
@@ -270,7 +270,7 @@ void Graph(bool interactive) {
                 {Container::Vertical(
                      {scrollable_content,
                       scrollbar_x | Maybe([&] { return screen.dimx() < 120; }),
-                      tooltip | xframe }) |
+                      tooltip | xframe}) |
                      flex,
                  buttons | vscroll_indicator | yframe |
                      size(HEIGHT, LESS_THAN, 7)});
@@ -280,6 +280,13 @@ void Graph(bool interactive) {
             });
 
             renderer |= CatchEvent([&](Event event) {
+                if (event == Event::Custom) {
+                    Pallete::setTheme();
+                    rebuildTiles(file_names[0], tiles, tooltip_content,
+                                 interactive);
+                    rebuildGrid(hbox_comp, tiles);
+                    return true;
+                }
                 if (event == Event::q || event == Event::Escape) {
                     // since it returns a fun we need second () to call it.
                     screen.ExitLoopClosure()();

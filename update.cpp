@@ -357,5 +357,12 @@ void Update() {
         return document | size(WIDTH, EQUAL, 114);
     });
 
+    main_renderer |= CatchEvent([](Event event){
+        if (event == Event::Custom){
+            Pallete::setTheme();
+            return true;
+        }
+        return false;
+    });
     screen.Loop(main_renderer);
 }

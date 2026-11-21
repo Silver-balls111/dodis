@@ -1,10 +1,16 @@
 #include "colors.hpp"
+#include "globals.hpp"
 #include <filesystem>
 #include <fstream>
 #include <ftxui/ftxui.hpp>
+#include <iostream>
 #include <map>
+#include <mutex>
 
 namespace fs = std::filesystem;
+
+// TODO: Add a filewatcher for file path in theme.txt when that path file
+// gets modified call setTheme.
 
 void themeSwitcher() {
     using namespace ftxui;
@@ -54,10 +60,12 @@ void themeSwitcher() {
         }
         if (event == Event::Return) {
             current = selected;
-            std::ofstream file {"themes/theme.txt"};
-            file << themes[theme_keys[current]];
-            file.flush();
-            Pallete::setTheme();
+            ThemeFile tf;
+            std::string path = themes[theme_keys[current]];
+            auto status = tf.writePsuedoFile(path);
+            if (!status.has_value()) {
+                std::cerr << status.error();
+            }
             return true;
         }
         return false;
@@ -80,5 +88,14 @@ void themeSwitcher() {
         return vbox({menu_renderer->Render(), tooltip}) |
                size(WIDTH, LESS_THAN, 114);
     });
+
+    renderer |= CatchEvent([](Event event) {
+        if (event == Event::Custom) {
+            Pallete::setTheme();
+            return true;
+        }
+        return false;
+    });
+
     screen.Loop(renderer);
 }

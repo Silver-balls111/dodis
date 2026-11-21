@@ -78,6 +78,14 @@ void Create() {
                size(WIDTH, LESS_THAN, 114);
     });
 
+    renderer |= CatchEvent([](Event event){
+        if (event == Event::Custom){
+            Pallete::setTheme();
+            return true;
+        }
+        return false;
+    });
+
     app.PrintAbove(
         vbox({
             text("To Do List") | bold | hcenter | color(Pallete::heading1),

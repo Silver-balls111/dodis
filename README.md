@@ -26,9 +26,9 @@
   ```
   
 **To-Do**:
-  - Add some premade color pallete to match starter images.
-  - Support image to be used in contribution graph.
+  - Create a log file.
   - Make the file path independent of the executable path
+  - Support image to be used in contribution graph.
   - Create help()       [done.]
   - Support multiple year.      [done]
   - Choose a suitable default color for the graph.      [done choose grey.]
@@ -38,3 +38,4 @@
   - Make create ui in ftxui. [done]
   - Make update() in ftxui. [done]
   - Add option to allow editing the task file. [done]
+  - Add some premade color palletes. [done]

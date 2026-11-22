@@ -145,6 +145,27 @@ void rebuildTiles(const chrono::year &choosen_year,
     }
 }
 
+void rebuildDay(std::vector<Element> &day, std::vector<std::string> &days) {
+    day.clear();
+    for (auto x : days) {
+        day.push_back(text(x) | bold | color(Pallete::heading1));
+    }
+}
+
+void rebuildMonth(std::vector<Element> &month,
+                  std::vector<std::string> &months) {
+    month.clear();
+    for (size_t i = 0; i < months.size(); ++i) {
+        month.push_back(text("  ")); // 2 spaces
+        month.push_back(text(months[i]) | bold | color(Pallete::heading1));
+        month.push_back(text("  ")); // 2 spaces
+        if (i % 2 == 0) {
+            month.push_back(text(" "));
+        }
+        month.push_back(text(" "));
+    }
+}
+
 void Graph(bool interactive) {
     try {
         std::vector<Component> tiles;
@@ -154,9 +175,7 @@ void Graph(bool interactive) {
         day.reserve(8);
         std::vector<std::string> days{"   ", "Sun", "Mon", "Tue",
                                       "Wed", "Thu", "Fri", "Sat"};
-        for (auto x : days) {
-            day.push_back(text(x) | bold | color(Pallete::heading1));
-        }
+        rebuildDay(day, days);
         auto day_comp =
             Renderer([&] { return vbox(day) | size(WIDTH, EQUAL, 5); });
 
@@ -165,15 +184,7 @@ void Graph(bool interactive) {
         std::vector<std::string> months{"Jan", "Feb", "Mar", "Apr",
                                         "May", "Jun", "Jul", "Aug",
                                         "Sep", "Oct", "Nov", "Dec"};
-        for (size_t i = 0; i < months.size(); ++i) {
-            month.push_back(text("  ")); // 2 spaces
-            month.push_back(text(months[i]) | bold | color(Pallete::heading1));
-            month.push_back(text("  ")); // 2 spaces
-            if (i % 2 == 0) {
-                month.push_back(text(" "));
-            }
-            month.push_back(text(" "));
-        }
+        rebuildMonth(month, months);
         auto month_comp = Renderer([&] { return hbox(month); });
 
         std::string tooltip_content;
@@ -214,7 +225,8 @@ void Graph(bool interactive) {
             std::ranges::sort(file_names,
                               std::greater<chrono::year>()); // descending order
 
-            rebuildTiles(file_names[0], tiles, tooltip_content, interactive);
+            chrono::year displayed_year = file_names[0];
+            rebuildTiles(displayed_year, tiles, tooltip_content, interactive);
             rebuildGrid(hbox_comp, tiles);
 
             auto style =
@@ -223,15 +235,21 @@ void Graph(bool interactive) {
             auto buttons = Container::Vertical({});
 
             auto onYearSelected = [&](chrono::year file) {
+                displayed_year = file;
                 rebuildTiles(file, tiles, tooltip_content, interactive);
                 rebuildGrid(hbox_comp, tiles);
             };
 
-            for (chrono::year file : file_names) {
-                buttons->Add(Button(
-                    yearToString(file),
-                    [&onYearSelected, file] { onYearSelected(file); }, style));
-            }
+            auto rebuildButtons = [&] {
+                buttons->DetachAllChildren();
+                for (chrono::year file : file_names) {
+                    buttons->Add(Button(
+                        yearToString(file),
+                        [&onYearSelected, file] { onYearSelected(file); },
+                        style));
+                }
+            };
+            rebuildButtons();
 
             float scroll_pos_x = 0.1f;
             float scroll_pos_y = 0.1f;
@@ -243,11 +261,13 @@ void Graph(bool interactive) {
             option_x.increment = 0.1f;
             option_x.label = " ";
             option_x.direction = Direction::Right;
-            option_x.color_active = Pallete::tile_100;
-            option_x.color_inactive = Pallete::hover_bg;
+            option_x.color_active = Pallete::tile_75;
+            option_x.color_inactive = Pallete::tile_25;
 
             // NOTE: option.lable is only available in my fork of ftxui
-            auto scrollbar_x = Slider(option_x);
+            // the slider copies its option on construction, so it has to be
+            // rebuilt for the new theme colors to take effect.
+            auto scrollbar_holder = Container::Vertical({Slider(option_x)});
 
             // panning with focusPositionRelative requires knowing the actual
             // rendered box size of the content to compute the offsets, so we
@@ -269,7 +289,8 @@ void Graph(bool interactive) {
             auto whole = Container::Horizontal(
                 {Container::Vertical(
                      {scrollable_content,
-                      scrollbar_x | Maybe([&] { return screen.dimx() < 120; }),
+                      scrollbar_holder |
+                          Maybe([&] { return screen.dimx() < 120; }),
                       tooltip | xframe}) |
                      flex,
                  buttons | vscroll_indicator | yframe |
@@ -282,7 +303,21 @@ void Graph(bool interactive) {
             renderer |= CatchEvent([&](Event event) {
                 if (event == Event::Custom) {
                     Pallete::setTheme();
-                    rebuildTiles(file_names[0], tiles, tooltip_content,
+                    rebuildDay(day, days);
+                    rebuildMonth(month, months);
+
+                    style = ButtonOption::Animated(Color::Default,
+                                                    Color::Grey62,
+                                                    Color::Default,
+                                                    Pallete::hover_bg);
+                    rebuildButtons();
+
+                    option_x.color_active = Pallete::tile_75;
+                    option_x.color_inactive = Pallete::tile_25;
+                    scrollbar_holder->DetachAllChildren();
+                    scrollbar_holder->Add(Slider(option_x));
+
+                    rebuildTiles(displayed_year, tiles, tooltip_content,
                                  interactive);
                     rebuildGrid(hbox_comp, tiles);
                     return true;

@@ -1,11 +1,9 @@
 #include "colors.hpp"
 #include "globals.hpp"
 #include <filesystem>
-#include <fstream>
 #include <ftxui/ftxui.hpp>
 #include <iostream>
 #include <map>
-#include <mutex>
 
 namespace fs = std::filesystem;
 

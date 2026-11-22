@@ -7,16 +7,16 @@ namespace {
 // clang-format off
 nlohmann::json default_scheme = 
     {
-        {"name", "Catppuccin Mocha (Dark)"},
-        {"text",        {205, 214, 244}},
-        {"heading1",    {205, 214, 244}},
-        {"border",      {66, 66, 101}},
-        {"hover_bg",    {65, 66, 93}},
-        {"tile_0",      {30, 30, 46}},
-        {"tile_25",     {57, 68, 97}},
-        {"tile_50",     {84, 105, 148}},
-        {"tile_75",     {110, 142, 199}},
-        {"tile_100",    {137, 180, 250}},
+        {"name",        "Default"},
+        {"text",        {158, 193, 204}},
+        {"heading1",    {158, 193, 204}},
+        {"border",      {127, 165, 175}},
+        {"hover_bg",    {127, 165, 175}},
+        {"tile_0",      {31, 29, 39}},
+        {"tile_25",     {63, 71, 84}},
+        {"tile_50",     {98, 122, 134}},
+        {"tile_75",     {127, 165, 134}},
+        {"tile_100",    {156, 207, 216}},
     };
 // clang-format on
 

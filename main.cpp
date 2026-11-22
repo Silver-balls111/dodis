@@ -16,11 +16,6 @@ void themeSwitcher();
 
 namespace fs = std::filesystem;
 
-fs::path getThemeFilePath() {
-    ThemeFile tf;
-    return tf.getActualThemeFilePath();
-}
-
 class FileHandler : public efsw::FileWatchListener {
   public:
     FileHandler(std::string theme_name_f, std::string theme_f)
@@ -40,13 +35,23 @@ class FileHandler : public efsw::FileWatchListener {
         }
         if (filename == theme_name_f) {
             if (action == efsw::Actions::Modified) {
-                theme_f = getThemeFilePath().filename();
+                ThemeFile tf;
+                theme_f = tf.getActualThemeFilePath().filename();
                 // requestThemeReload();
                 if (auto *app = ftxui::App::Active())
                     app->PostEvent(ftxui::Event::Custom);
                 else
                     Pallete::setTheme();
             }
+            if (action == efsw::Actions::Moved) {
+                ThemeFile tf;
+                theme_f = tf.getActualThemeFilePath().filename();
+                if (auto *app = ftxui::App::Active())
+                    app->PostEvent(ftxui::Event::Custom);
+                else
+                    Pallete::setTheme();
+            }
+
             return;
         }
         return;

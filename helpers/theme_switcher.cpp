@@ -76,16 +76,16 @@ void themeSwitcher() {
                size(HEIGHT, LESS_THAN, 8) | borderStyled(Pallete::border);
     });
 
-    auto tooltip = hbox({
+    auto renderer = Renderer(menu_renderer, [&] {
+        return vbox({
+                   menu_renderer->Render(),
+                   hbox({
                        text(" Enter ") | bold,
                        text("select theme | ") | dim,
                        text("Esc/q ") | bold,
                        text("exit") | dim,
-                   }) |
-                   color(Pallete::text);
-
-    auto renderer = Renderer(menu_renderer, [&] {
-        return vbox({menu_renderer->Render(), tooltip}) |
+                   }) | color(Pallete::text),
+               }) |
                size(WIDTH, LESS_THAN, 114);
     });
 

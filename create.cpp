@@ -46,11 +46,9 @@ void Create() {
             return true;
         }
         empty_list = false;
-        app.PrintAbove(hbox({
-            text("    │ ") | color(Pallete::border) | dim,
-            text("• ") | color(Pallete::border), 
-            paragraph(input_text) | color(Pallete::text)
-        }));
+        app.PrintAbove(hbox({text("    │ ") | color(Pallete::border) | dim,
+                             text("• ") | color(Pallete::border),
+                             paragraph(input_text) | color(Pallete::text)}));
 
         task_file << input_text << '\n';
         compl_file << -1 << '\n';
@@ -62,24 +60,23 @@ void Create() {
         Renderer([] { return text("    No task added yet...") | dim; });
     auto conditional_empty_msg = empty_list_msg | Maybe(&empty_list);
 
-    auto hints = hbox({
-        text("Enter ") | bold,
-        text("add | ") | dim,
-        text("Esc ") | bold,
-        text("finish") | dim,
-    }) | color(Pallete::text);
     auto renderer = Renderer(input, [&] {
         return vbox({
                    conditional_empty_msg->Render(),
                    separatorHeavy() | color(Pallete::border),
                    input->Render(),
-                   hints,
+                   hbox({
+                       text("Enter ") | bold,
+                       text("add | ") | dim,
+                       text("Esc ") | bold,
+                       text("finish") | dim,
+                   }) | color(Pallete::text),
                }) |
                size(WIDTH, LESS_THAN, 114);
     });
 
-    renderer |= CatchEvent([](Event event){
-        if (event == Event::Custom){
+    renderer |= CatchEvent([](Event event) {
+        if (event == Event::Custom) {
             Pallete::setTheme();
             return true;
         }

@@ -228,10 +228,8 @@ void Update() {
     ip_opt.transform = [](InputState s) {
         if (s.is_placeholder)
             s.element |= color(Pallete::text) | dim;
-        return hbox({
-            text(" ") | color(Pallete::border) | bold,
-            s.element | color(Pallete::text)
-        }); // chevron right - f054
+        return hbox({text(" ") | color(Pallete::border) | bold,
+                     s.element | color(Pallete::text)}); // chevron right - f054
     };
     auto input = Input(&input_text, &placeholder, ip_opt);
     input |= CatchEvent([&](Event event) {
@@ -315,27 +313,29 @@ void Update() {
                size(HEIGHT, LESS_THAN, 8) | borderStyled(Pallete::border);
     });
 
-    auto tooltip = hbox({
-        text(" Enter ") | bold,
-        text("mark done | ") | dim,
-        text("x ") | bold,
-        text("mark not done | ") | dim,
-        text("p ") | bold,
-        text("percentage | ") | dim,
-        text("Esc/q ") | bold,
-        text("finish") | dim,
-    }) | color(Pallete::text);
-
+    // clang-format off
     auto depth_0_renderer = Renderer(task_renderer, [&] {
-        return vbox({task_renderer->Render(), tooltip});
+        return vbox({
+            task_renderer->Render(), 
+            hbox({
+                 text(" Enter ") | bold,
+                 text("mark done | ") | dim,
+                 text("x ") | bold,
+                 text("mark not done | ") | dim,
+                 text("p ") | bold,
+                 text("percentage | ") | dim,
+                 text("Esc/q ") | bold,
+                 text("finish") | dim,
+             }) | color(Pallete::text),
+        });
     });
+    // clang-format on
 
-    auto depth_1_renderer = Renderer(input, [&]{
-        return window(text("Completion %") | color(Pallete::heading1) | bold, 
-                      input->Render()
-                      ) | color(Pallete::border) 
-                        | size(WIDTH, EQUAL, 20) 
-                        | size(HEIGHT, EQUAL, 3);
+    auto depth_1_renderer = Renderer(input, [&] {
+        return window(text("Completion %") | color(Pallete::heading1) | bold,
+                      input->Render()) |
+               color(Pallete::border) | size(WIDTH, EQUAL, 20) |
+               size(HEIGHT, EQUAL, 3);
     });
 
     auto whole = Container::Tab(
@@ -351,14 +351,14 @@ void Update() {
         if (depth == 1) {
             document = dbox({
                 document,
-               depth_1_renderer->Render() | clear_under | center,
+                depth_1_renderer->Render() | clear_under | center,
             });
         }
         return document | size(WIDTH, EQUAL, 114);
     });
 
-    main_renderer |= CatchEvent([](Event event){
-        if (event == Event::Custom){
+    main_renderer |= CatchEvent([](Event event) {
+        if (event == Event::Custom) {
             Pallete::setTheme();
             return true;
         }

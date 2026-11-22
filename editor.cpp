@@ -1,3 +1,4 @@
+#include "helpers/colors.hpp"
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -35,21 +36,29 @@ void Edit() {
     // clang-format off
     auto renderer = Renderer(text_area, [&] {
         return vbox({
-            window(text("Task List"),
+            window(text("Task List") | color(Pallete::heading1),
                    hbox({
                         text(" "),
                         text_area->Render(),
-                    }) | size(HEIGHT, LESS_THAN, 8)| color(Color::White)
-            ) | color(Color::Green),
+                    }) | size(HEIGHT, LESS_THAN, 8)| color(Pallete::text)
+            ) | color(Pallete::border),
             hbox({
                 text(" Esc ") | bold,
                 text("save & exit |") | dim,
                 text(" Ctrl C ") | bold,
                 text("exit") | dim,
-            }),
+            }) | color(Pallete::text),
         }) | size(WIDTH, EQUAL, 114);
     });
     // clang-format on
+
+    renderer |= CatchEvent([](Event event) {
+        if (event == Event::Custom) {
+            Pallete::setTheme();
+            return true;
+        }
+        return false;
+    });
 
     app.Loop(renderer);
 }

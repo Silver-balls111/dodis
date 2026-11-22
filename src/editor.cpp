@@ -1,9 +1,8 @@
-#include "helpers/colors.hpp"
-#include <fstream>
-#include <sstream>
-#include <string>
-
+#include "../helpers/colors.hpp"
 #include <ftxui/ftxui.hpp>
+
+import std;
+
 using namespace ftxui;
 
 void Edit() {

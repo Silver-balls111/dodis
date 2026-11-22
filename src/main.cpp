@@ -1,11 +1,10 @@
-#include "helpers/colors.hpp"
-#include "helpers/globals.hpp"
+#include "../helpers/colors.hpp"
+#include "../helpers/globals.hpp"
 #include <cstring>
 #include <efsw/efsw.hpp>
-#include <filesystem>
 #include <ftxui/ftxui.hpp>
-#include <iostream>
-#include <string>
+
+import std;
 
 void Create();
 void Update();

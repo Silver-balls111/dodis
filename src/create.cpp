@@ -1,13 +1,11 @@
-#include <fstream>
-#include <iostream>
-#include <string>
-
 #include "ftxui/component/app.hpp"       // for App
 #include "ftxui/component/component.hpp" // for Input, Renderer, CatchEvent
 #include "ftxui/component/event.hpp"     // for Event
 #include "ftxui/dom/elements.hpp"        // for text, paragraph, vbox
 
-#include "helpers/colors.hpp"
+#include "../helpers/colors.hpp"
+
+import std;
 
 void Create() {
     using namespace ftxui;

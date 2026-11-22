@@ -1,17 +1,8 @@
-#include <chrono>
-#include <filesystem>
-#include <format>
-#include <fstream>
-#include <numeric>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-#include <string_view>
-#include <vector>
-
 #include <ftxui/ftxui.hpp>
 
-#include "helpers/colors.hpp"
+#include "../helpers/colors.hpp"
+
+import std;
 
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;

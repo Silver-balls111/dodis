@@ -1,26 +1,10 @@
-cmake_minimum_required(VERSION 3.23)
+cmake_minimum_required(VERSION 4.5)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-project(dodis)
-
-add_executable(dodis main.cpp)
-
-target_sources(
-    dodis
-    PRIVATE
-        create.cpp
-        update.cpp
-        graph.cpp
-        help.cpp
-        editor.cpp
-        helpers/colors.cpp
-        helpers/monthInfo.cpp
-        helpers/conversions.cpp
-        helpers/theme_switcher.cpp
-)
+project(betterman)
 
 include(FetchContent)
 FetchContent_Declare(
@@ -37,4 +21,22 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(efsw)
 
-target_link_libraries(dodis PRIVATE ftxui::ftxui efsw)
+file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
+    ${PROJECT_SOURCE_DIR}/src/*.cpp
+    ${PROJECT_SOURCE_DIR}/helpers/*.cpp
+)
+
+file(GLOB_RECURSE MODULE_FILES CONFIGURE_DEPENDS 
+    ${PROJECT_SOURCE_DIR}/modules/*.cppm
+)
+
+add_executable(betterman ${SOURCE_FILES})
+
+target_sources(betterman
+    PRIVATE
+    FILE_SET CXX_MODULES
+    BASE_DIRS ${PROJECT_SOURCE_DIR}/modules
+    FILES ${MODULE_FILES}
+)
+
+target_link_libraries(betterman PRIVATE ftxui::ftxui efsw)

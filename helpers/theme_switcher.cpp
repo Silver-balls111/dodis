@@ -1,9 +1,8 @@
 #include "colors.hpp"
 #include "globals.hpp"
-#include <filesystem>
 #include <ftxui/ftxui.hpp>
-#include <iostream>
-#include <map>
+
+import std;
 
 namespace fs = std::filesystem;
 

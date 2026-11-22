@@ -1,17 +1,11 @@
-#include "helpers/colors.hpp"
-#include "helpers/conversions.hpp"
-#include "helpers/monthInfo.hpp"
-#include <chrono>
-#include <filesystem>
-#include <fstream>
+#include "../helpers/colors.hpp"
+#include "../helpers/conversions.hpp"
+#include "../helpers/monthInfo.hpp"
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/ftxui.hpp>
 #include <ftxui/screen/color_info.hpp>
-#include <iostream>
-#include <sstream>
-#include <stdexcept>
-#include <string>
-#include <vector>
+
+import std;
 
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;

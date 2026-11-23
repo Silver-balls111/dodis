@@ -2,6 +2,8 @@
 
 import std;
 import betterman.colors;
+import betterman.conversions;
+import betterman.calender;
 
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;
@@ -14,54 +16,11 @@ ftxui::Color lerpColor(double t) { // t in [0,1]
                              lerp(171, 161, t));
 }
 
-namespace Glyph {
-static constexpr std::string_view empty{"   "};
-static constexpr std::string_view check{"  "};
-static constexpr std::string_view cross{"  "};
-static constexpr std::string_view below12{"󰝦  "};
-static constexpr std::string_view below25{"󰪞  "};
-static constexpr std::string_view below37{"󰪟  "};
-static constexpr std::string_view below50{"󰪠  "};
-static constexpr std::string_view below62{"󰪡  "};
-static constexpr std::string_view below75{"󰪢  "};
-static constexpr std::string_view below87{"󰪣  "};
-static constexpr std::string_view below100{"󰪤  "};
-}; // namespace Glyph
-
-std::string_view opacityToGlyph(float op) {
-    using namespace Glyph;
-    if (op == -1)
-        return empty;
-    else if (op == 0)
-        return cross;
-    else if (op < 0.12)
-        return below12;
-    else if (op < 0.25)
-        return below25;
-    else if (op < 0.37)
-        return below37;
-    else if (op < 0.50)
-        return below50;
-    else if (op < 0.62)
-        return below62;
-    else if (op < 0.75)
-        return below75;
-    else if (op < 0.87)
-        return below87;
-    else if (op < 1)
-        return below100;
-    else
-        return check;
-}
-
 void finishUP(float final_opacity, std::vector<double> compl_level,
               std::vector<int> indices) {
     using namespace std;
-    const auto now = chrono::system_clock::now();
-    const chrono::zoned_time zt{chrono::current_zone(), now};
-    const auto today = chrono::floor<chrono::days>(zt.get_local_time());
-    const string todays_date = format("{:%Y/%m/%d}", today);
-    const string current_year = format("{:%Y}", today);
+    const string today {getLocalDate()};
+    const string current_year = std::format("{:%Y}", getLocalDate<false>());
     std::filesystem::path contribution_file_path{
         std::format("contributions/{}.txt", current_year)};
 
@@ -83,7 +42,7 @@ void finishUP(float final_opacity, std::vector<double> compl_level,
             string date;
             float opac;
             buffer >> date >> opac;
-            if (!buffer || (date == todays_date)) {
+            if (!buffer || (date == today)) {
                 break;
             }
             dates.push_back(date);
@@ -92,7 +51,7 @@ void finishUP(float final_opacity, std::vector<double> compl_level,
     }
     read_contribution.close();
 
-    dates.push_back(todays_date);
+    dates.push_back(today);
     opacitys.push_back(final_opacity);
 
     ofstream contribution_file{contribution_file_path};
@@ -117,10 +76,7 @@ void finishUP(float final_opacity, std::vector<double> compl_level,
 }
 
 std::vector<int> startUP(std::vector<double> &compl_level) {
-    auto now = chrono::system_clock::now();
-    chrono::zoned_time zt{chrono::current_zone(), now};
-    auto today = chrono::floor<chrono::days>(zt.get_local_time());
-    std::string todays_date = format("{:%Y/%m/%d}", today);
+    std::string today {getLocalDate()};
 
     fs::path path{"completion.txt"};
     auto lwt{fs::last_write_time(path)};
@@ -132,7 +88,7 @@ std::vector<int> startUP(std::vector<double> &compl_level) {
     std::stringstream abc;
     abc << compl_file.rdbuf();
     double lvl;
-    if (todays_date != last_modified) {
+    if (today != last_modified) {
         while (abc >> lvl)
             compl_level.push_back(-1);
     } else {
@@ -143,7 +99,7 @@ std::vector<int> startUP(std::vector<double> &compl_level) {
     std::vector<int> indices(compl_level.size());
     std::iota(indices.begin(), indices.end(), 0);
 
-    if (todays_date == last_modified) {
+    if (today == last_modified) {
         std::ranges::stable_sort(indices, [&](int A, int B) -> bool {
             return compl_level[A] < compl_level[B];
         });
@@ -255,13 +211,6 @@ void Update() {
         }
         return true;
     });
-
-    // Component depth_1 = Window({
-    //     .inner = input,
-    //     .title = "Completion %",
-    //     .width = 20,
-    //     .height = 3,
-    // });
 
     auto task_menu = Menu(&tasks, &selected, opt);
 

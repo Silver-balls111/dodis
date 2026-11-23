@@ -5,7 +5,7 @@
 import std;
 import betterman.colors;
 import betterman.conversions;
-import betterman.monthInfo;
+import betterman.calender;
 
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;

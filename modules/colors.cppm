@@ -1,7 +1,12 @@
-#include "colors.hpp"
-#include "globals.hpp"
-#include "json.hpp"
-#include <fstream>
+module;
+#include <nlohmann/json.hpp>
+#include <ftxui/screen/color.hpp>
+export module betterman.colors;
+
+import std;
+import betterman.themeFile;
+
+inline constexpr auto rgb = ftxui::Color::RGB;
 
 namespace {
 // clang-format off
@@ -25,7 +30,7 @@ nlohmann::json loadThemeConfig() {
     auto value = tf.readPsuedoFile();
     try {
         if (!value.has_value()) {
-            throw;
+            throw std::runtime_error{"no theme file"};
         }
         std::ifstream f{value.value()};
         return nlohmann::json::parse(f);
@@ -36,20 +41,20 @@ nlohmann::json loadThemeConfig() {
 }
 } // namespace
 
-// definitions of the static data members
-// (default-constructed for now, the
-// constructor below fills in the real
-// values)
-std::string Pallete::theme_name;
-ftxui::Color Pallete::text;
-ftxui::Color Pallete::heading1;
-ftxui::Color Pallete::border;
-ftxui::Color Pallete::hover_bg;
-ftxui::Color Pallete::tile_0;
-ftxui::Color Pallete::tile_25;
-ftxui::Color Pallete::tile_50;
-ftxui::Color Pallete::tile_75;
-ftxui::Color Pallete::tile_100;
+export struct Pallete {
+    inline static std::string  theme_name;
+    inline static ftxui::Color text;
+    inline static ftxui::Color heading1;
+    inline static ftxui::Color border;
+    inline static ftxui::Color hover_bg;
+    inline static ftxui::Color tile_0;
+    inline static ftxui::Color tile_25;
+    inline static ftxui::Color tile_50;
+    inline static ftxui::Color tile_75;
+    inline static ftxui::Color tile_100;
+
+    static void setTheme();
+};
 
 // clang-format off
 void Pallete::setTheme() {
@@ -67,10 +72,3 @@ void Pallete::setTheme() {
     tile_100    = rgb(config["tile_100"][0], config["tile_100"][1], config["tile_100"][2]);
 }
 // clang-format on
-
-Pallete::Pallete() { setTheme(); }
-
-// the single instance — its construction
-// is what actually invokes
-// pallete::pallete()
-Pallete Pallete::initializer;

@@ -1,7 +1,7 @@
-#include "../helpers/colors.hpp"
 #include <ftxui/ftxui.hpp>
 
 import std;
+import betterman.colors;
 
 using namespace ftxui;
 

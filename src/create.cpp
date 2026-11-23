@@ -3,9 +3,8 @@
 #include "ftxui/component/event.hpp"     // for Event
 #include "ftxui/dom/elements.hpp"        // for text, paragraph, vbox
 
-#include "../helpers/colors.hpp"
-
 import std;
+import betterman.colors;
 
 void Create() {
     using namespace ftxui;

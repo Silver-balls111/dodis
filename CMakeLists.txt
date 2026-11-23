@@ -21,22 +21,35 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(efsw)
 
-file(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS
+FetchContent_Declare(
+    json
+    URL https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+)
+FetchContent_MakeAvailable(json)
+
+file(
+    GLOB_RECURSE SOURCE_FILES
+    CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/src/*.cpp
-    ${PROJECT_SOURCE_DIR}/helpers/*.cpp
 )
 
-file(GLOB_RECURSE MODULE_FILES CONFIGURE_DEPENDS 
+file(
+    GLOB_RECURSE MODULE_FILES
+    CONFIGURE_DEPENDS
     ${PROJECT_SOURCE_DIR}/modules/*.cppm
 )
 
 add_executable(betterman ${SOURCE_FILES})
 
-target_sources(betterman
+target_sources(
+    betterman
     PRIVATE
-    FILE_SET CXX_MODULES
-    BASE_DIRS ${PROJECT_SOURCE_DIR}/modules
-    FILES ${MODULE_FILES}
+        FILE_SET CXX_MODULES
+            BASE_DIRS ${PROJECT_SOURCE_DIR}/modules
+            FILES ${MODULE_FILES}
 )
 
-target_link_libraries(betterman PRIVATE ftxui::ftxui efsw)
+target_link_libraries(
+    betterman
+    PRIVATE efsw ftxui::ftxui nlohmann_json::nlohmann_json
+)

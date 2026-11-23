@@ -1,11 +1,11 @@
-#include "../helpers/colors.hpp"
-#include "../helpers/conversions.hpp"
-#include "../helpers/monthInfo.hpp"
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/ftxui.hpp>
 #include <ftxui/screen/color_info.hpp>
 
 import std;
+import betterman.colors;
+import betterman.conversions;
+import betterman.monthInfo;
 
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;

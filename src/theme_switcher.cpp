@@ -1,8 +1,8 @@
-#include "colors.hpp"
-#include "globals.hpp"
 #include <ftxui/ftxui.hpp>
 
 import std;
+import betterman.themeFile;
+import betterman.colors;
 
 namespace fs = std::filesystem;
 

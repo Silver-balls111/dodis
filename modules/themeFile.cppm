@@ -1,12 +1,9 @@
-#pragma once
-#include <cstring>
-#include <expected>
-#include <filesystem>
-#include <fstream>
-#include <mutex>
-#include <sstream>
+module;
+#include <cerrno>
+export module betterman.themeFile;
+import std;
 
-class ThemeFile {
+export class ThemeFile {
     inline static std::mutex psuedo_file_mtx_;
     inline static std::mutex actual_file_mtx_;
     std::filesystem::path psuedo_file_path_{"themes/theme.txt"};
@@ -16,6 +13,7 @@ class ThemeFile {
     std::expected<int, std::string_view> writePsuedoFile(std::string &content) {
         std::scoped_lock lock(psuedo_file_mtx_);
         try {
+            // ofstream dosne't throw if file can't be opened the << will throw
             std::ofstream f{psuedo_file_path_};
             f << content;
             f.flush();
@@ -52,5 +50,3 @@ class ThemeFile {
         return std::ifstream{getActualThemeFilePath()};
     }
 };
-
-std::filesystem::path getThemeFilePath();

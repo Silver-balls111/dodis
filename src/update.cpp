@@ -1,8 +1,7 @@
 #include <ftxui/ftxui.hpp>
 
-#include "../helpers/colors.hpp"
-
 import std;
+import betterman.colors;
 
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;

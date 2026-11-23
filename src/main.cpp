@@ -1,11 +1,13 @@
-#include "../helpers/colors.hpp"
-#include "../helpers/globals.hpp"
 #include <cstring>
-#include <efsw/efsw.hpp>
 #include <ftxui/ftxui.hpp>
 
 import std;
+import betterman.themeFile;
+import betterman.colors;
+import betterman.fileWatcher;
 
+// this fun are not exported from a module as if the file changes then bmi
+// gets build again taking more build time than reduce.
 void Create();
 void Update();
 void Graph(bool interactive);
@@ -15,53 +17,8 @@ void themeSwitcher();
 
 namespace fs = std::filesystem;
 
-class FileHandler : public efsw::FileWatchListener {
-  public:
-    FileHandler(std::string theme_name_f, std::string theme_f)
-        : theme_name_f(theme_name_f), theme_f(theme_f) {}
-    void handleFileAction(efsw::WatchID, const std::string &dir,
-                          const std::string &filename, efsw::Action action,
-                          const std::string &oldfilename) override {
-        if (filename == theme_f) {
-            if (action == efsw::Actions::Modified) {
-                // requestThemeReload();
-                if (auto *app = ftxui::App::Active())
-                    app->PostEvent(ftxui::Event::Custom);
-                else
-                    Pallete::setTheme();
-            }
-            return;
-        }
-        if (filename == theme_name_f) {
-            if (action == efsw::Actions::Modified) {
-                ThemeFile tf;
-                theme_f = tf.getActualThemeFilePath().filename();
-                // requestThemeReload();
-                if (auto *app = ftxui::App::Active())
-                    app->PostEvent(ftxui::Event::Custom);
-                else
-                    Pallete::setTheme();
-            }
-            if (action == efsw::Actions::Moved) {
-                ThemeFile tf;
-                theme_f = tf.getActualThemeFilePath().filename();
-                if (auto *app = ftxui::App::Active())
-                    app->PostEvent(ftxui::Event::Custom);
-                else
-                    Pallete::setTheme();
-            }
-
-            return;
-        }
-        return;
-    }
-
-  private:
-    std::string theme_name_f;
-    std::string theme_f;
-};
-
 int main(const int argc, const char **argkv) {
+    Pallete::setTheme();
     if (argc == 1) {
         fs::path path{"tasks.txt"};
         if (!std::filesystem::exists(path) || std::filesystem::is_empty(path))
@@ -69,16 +26,7 @@ int main(const int argc, const char **argkv) {
         else
             Update();
     }
-
-    ThemeFile tf;
-    auto pfp = tf.getPsuedoFilePath();
-    fs::path afp = tf.getActualThemeFilePath();
-    FileHandler fh(pfp.filename(), afp.filename());
-
-    efsw::FileWatcher fw;
-    fw.addWatch("themes/", &fh, true);
-    fw.watch();
-
+    watchThemes();
     if (argc == 2) {
         if (!strcmp(argkv[1], "-c")) { // strcmp return 0 if equal so !
             Create();

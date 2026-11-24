@@ -2,11 +2,10 @@
 #include <ftxui/ftxui.hpp>
 
 import std;
-import betterman.themeFile;
+import betterman.globals;
 import betterman.colors;
 import betterman.fileWatcher;
 import betterman.logger;
-import betterman.globals;
 
 namespace fs = std::filesystem;
 
@@ -20,17 +19,20 @@ void Edit();
 void themeSwitcher();
 
 int main(const int argc, const char **argkv) {
-    Pallete::setTheme();
     if (initializePaths())
         return 1;
 
+    Pallete::setTheme();
     Log::m_path = base / "log.log";
 
     if (argc == 1) {
         if (!fs::exists(task_fp) || fs::is_empty(task_fp))
             Create();
-        else
+        else{
             Update();
+            Graph(false);
+        }
+        return 0;
     }
     watchThemes();
     if (argc == 2) {

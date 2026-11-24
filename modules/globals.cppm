@@ -8,6 +8,7 @@ export fs::path contributions_dir;
 export fs::path themes_dir;
 export fs::path task_fp;
 export fs::path completion_fp;
+export fs::path theme_fp;
 
 export int initializePaths() {
 #ifdef _WIN32
@@ -33,6 +34,7 @@ export int initializePaths() {
     themes_dir = base / "themes";
     task_fp = base / "tasks.txt";
     completion_fp = base / "completion.txt";
+    theme_fp = themes_dir / "current_theme.txt";
 
     return 0;
 }

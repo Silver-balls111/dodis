@@ -2,6 +2,7 @@
 
 import std;
 import betterman.themeFile;
+import betterman.logger;
 import betterman.colors;
 import betterman.globals;
 
@@ -14,12 +15,18 @@ void themeSwitcher() {
     using namespace ftxui;
     std::map<std::string, fs::path> themes;
 
+    if(!fs::exists(themes_dir)){
+        std::string msg = "Themes directory dosen't exit: " + themes_dir.string();
+        Log::log("ERROR", msg, true);
+        return;
+    }
     for (const auto &entry : fs::recursive_directory_iterator(themes_dir)) {
         if (entry.is_regular_file() &&
             entry.path().extension() == fs::path(".json")) {
             themes[entry.path().stem()] = entry.path();
         }
     }
+
     std::vector<std::string> theme_keys;
     theme_keys.reserve(themes.size());
     int idx{0};
@@ -61,6 +68,7 @@ void themeSwitcher() {
             ThemeFile tf;
             std::string path = themes[theme_keys[current]];
             auto status = tf.writePsuedoFile(path);
+            // TODO: cerr on gui is bad man, need to find other way
             if (!status.has_value()) {
                 std::cerr << status.error();
             }

@@ -5,7 +5,7 @@ void Help(){
     using namespace ftxui;
 
     auto help = vbox({
-        text("Usage: ./dodis [argument]"),
+        text("Usage: ./betterman [argument]"),
         hbox({
             vbox({
                 text("Arguments"),

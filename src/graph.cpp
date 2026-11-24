@@ -214,6 +214,7 @@ void Graph(bool interactive) {
                 if (entry.is_regular_file() &&
                     entry.path().extension() == fs::path(".txt")) {
                     try {
+                        // NOTE: as long as name starts with num it will be dispalyed
                         chrono::year yr{stringToYear(entry.path().stem())};
                         if (yr.ok())
                             file_names.push_back(yr);
@@ -354,7 +355,7 @@ void Graph(bool interactive) {
             Render(screen, whole_rendered);
             screen.Print();
         }
-    } catch (std::runtime_error const &e) {
+    } catch (const std::exception& e){
         std::cerr << "Error: " << e.what();
         return;
     }

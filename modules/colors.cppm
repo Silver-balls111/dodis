@@ -5,6 +5,7 @@ export module betterman.colors;
 
 import std;
 import betterman.themeFile;
+import betterman.logger;
 
 inline constexpr auto rgb = ftxui::Color::RGB;
 
@@ -27,15 +28,12 @@ nlohmann::json default_scheme =
 
 nlohmann::json loadThemeConfig() {
     ThemeFile tf;
-    auto value = tf.readPsuedoFile();
+    auto path = tf.getActualThemeFilePath();
     try {
-        if (!value.has_value()) {
-            throw std::runtime_error{"no theme file"};
-        }
-        std::ifstream f{value.value()};
+        std::ifstream f{path};
         return nlohmann::json::parse(f);
-    } catch (...) {
-        // TODO: write to log file the error.
+    } catch (const std::exception& e) {
+        Log::log("ERROR", e.what());
         return default_scheme;
     }
 }

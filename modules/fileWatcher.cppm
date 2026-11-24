@@ -28,7 +28,6 @@ export class FileHandler : public efsw::FileWatchListener {
             if (action == efsw::Actions::Modified) {
                 ThemeFile tf;
                 theme_f = tf.getActualThemeFilePath().filename();
-                // requestThemeReload();
                 if (auto *app = ftxui::App::Active())
                     app->PostEvent(ftxui::Event::Custom);
                 else
@@ -60,6 +59,6 @@ export void watchThemes(){
     FileHandler fh(pfp.filename(), afp.filename());
 
     efsw::FileWatcher fw;
-    fw.addWatch("themes/", &fh, true);
+    fw.addWatch(pfp.parent_path().string(), &fh, true);
     fw.watch();
 }

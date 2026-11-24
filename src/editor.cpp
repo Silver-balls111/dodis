@@ -3,10 +3,9 @@
 import std;
 import betterman.colors;
 import betterman.logger;
+import betterman.globals;
 
-namespace fs = std::filesystem;
 using namespace ftxui;
-extern fs::path task_fp;
 
 void Edit() {
     std::ifstream file{task_fp};

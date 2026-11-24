@@ -3,9 +3,9 @@
 import std;
 import betterman.themeFile;
 import betterman.colors;
+import betterman.globals;
 
 namespace fs = std::filesystem;
-extern fs::path themes_dir;
 
 // TODO: Add a filewatcher for file path in theme.txt when that path file
 // gets modified call setTheme.

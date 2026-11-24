@@ -8,14 +8,10 @@ import betterman.colors;
 import betterman.conversions;
 import betterman.calender;
 import betterman.logger;
+import betterman.globals;
 
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;
-
-extern fs::path base;
-extern fs::path contributions_dir;
-extern fs::path task_fp;
-extern fs::path completion_fp;
 
 ftxui::Color lerpColor(double t) { // t in [0,1]
     auto lerp = [](int a, int b, double t) {

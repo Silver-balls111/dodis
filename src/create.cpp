@@ -6,11 +6,7 @@
 import std;
 import betterman.colors;
 import betterman.logger;
-
-namespace fs = std::filesystem;
-extern fs::path base;
-extern fs::path task_fp;
-extern fs::path completion_fp;
+import betterman.globals;
 
 void Create() {
     using namespace ftxui;

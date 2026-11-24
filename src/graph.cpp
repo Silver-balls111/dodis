@@ -8,13 +8,11 @@ import betterman.colors;
 import betterman.conversions;
 import betterman.calender;
 import betterman.logger;
+import betterman.globals;
 
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;
 using namespace ftxui;
-
-extern fs::path base;
-extern fs::path contributions_dir;
 
 // BUG: hovering from bottom tile to above dosen't update tooltip
 // NOTE: on exit from tile hover tooltip becomes empty, is it fine?

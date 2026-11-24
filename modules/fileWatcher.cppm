@@ -1,12 +1,14 @@
 module;
 #include <efsw/efsw.hpp>
-#include <ftxui/component/event.hpp>
 #include <ftxui/component/app.hpp>
+#include <ftxui/component/event.hpp>
 export module betterman.fileWatcher;
 
 import std;
+import betterman.globals;
 import betterman.themeFile;
 import betterman.colors;
+import betterman.logger;
 
 export class FileHandler : public efsw::FileWatchListener {
   public:
@@ -52,13 +54,28 @@ export class FileHandler : public efsw::FileWatchListener {
     std::string theme_f;
 };
 
-export void watchThemes(){
-    ThemeFile tf;
-    auto pfp = tf.getPsuedoFilePath();
-    std::filesystem::path afp = tf.getActualThemeFilePath();
-    FileHandler fh(pfp.filename(), afp.filename());
+export void watchThemes() {
+    // fh need to be static for fw to later use otherwise fw would try to access
+    // fh and fh is no more so segfault, tf well why not,
+    static ThemeFile tf;
+    static FileHandler fh(tf.getPsuedoFilePath().filename().string(),
+                          tf.getActualThemeFilePath().filename().string());
 
-    efsw::FileWatcher fw;
-    fw.addWatch(pfp.parent_path().string(), &fh, true);
+    // when fw goes out of scope the watcher thread is killed so it must be
+    // static
+    static efsw::FileWatcher fw;
+
+    // Initialized once: a second explicit addWatch on the same directory fails
+    // with FileRepeated, so the id is cached in the static.
+    static const efsw::WatchID watch_id =
+        fw.addWatch(themes_dir.string(), &fh, true);
+
+    if (watch_id < 0) {
+        Log::log("ERROR",
+                 std::format("Failed to watch {}: {}", themes_dir.string(),
+                             efsw::Errors::Log::getLastErrorLog()));
+        return;
+    }
+
     fw.watch();
 }

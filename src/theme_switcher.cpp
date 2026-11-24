@@ -5,6 +5,7 @@ import betterman.themeFile;
 import betterman.colors;
 
 namespace fs = std::filesystem;
+extern fs::path themes_dir;
 
 // TODO: Add a filewatcher for file path in theme.txt when that path file
 // gets modified call setTheme.
@@ -13,7 +14,7 @@ void themeSwitcher() {
     using namespace ftxui;
     std::map<std::string, fs::path> themes;
 
-    for (const auto &entry : fs::recursive_directory_iterator("themes")) {
+    for (const auto &entry : fs::recursive_directory_iterator(themes_dir)) {
         if (entry.is_regular_file() &&
             entry.path().extension() == fs::path(".json")) {
             themes[entry.path().stem()] = entry.path();

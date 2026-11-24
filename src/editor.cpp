@@ -2,16 +2,23 @@
 
 import std;
 import betterman.colors;
+import betterman.logger;
 
+namespace fs = std::filesystem;
 using namespace ftxui;
+extern fs::path task_fp;
 
 void Edit() {
-    std::ifstream file{"tasks.txt"};
+    std::ifstream file{task_fp};
+    if (Log::fileOpenError(file, task_fp.string()))
+        return;
+
     std::stringstream str;
     str << file.rdbuf();
     std::string tasks{str.str()};
     file.close();
 
+    bool finished{false};
     auto app = App::TerminalOutput();
 
     InputOption ip_opt;
@@ -26,8 +33,7 @@ void Edit() {
     text_area |= CatchEvent([&](Event event) {
         if (event != Event::Escape)
             return false;
-        std::ofstream file{"tasks.txt"};
-        file << tasks;
+        finished = true;
         app.ExitLoopClosure()();
         return true;
     });
@@ -58,6 +64,12 @@ void Edit() {
         }
         return false;
     });
-
     app.Loop(renderer);
+
+    if (finished) {
+        std::ofstream file{task_fp};
+        if(Log::fileOpenError(file, task_fp.string()))
+            return;
+        file << tasks;
+    }
 }

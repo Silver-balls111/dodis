@@ -226,6 +226,11 @@ void Graph(bool interactive) {
                     }
                 }
             }
+            // this should never happen if user used the program correctly but well
+            // better have readable error msg if they dont.
+            if (file_names.empty())
+                throw std::runtime_error(std::format(
+                    "Empty directory: {}", contributions_dir.string()));
             std::ranges::sort(file_names,
                               std::greater<chrono::year>()); // descending order
 

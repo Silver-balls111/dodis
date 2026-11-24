@@ -29,14 +29,14 @@ int main(const int argc, const char **argkv) {
 #ifdef _WIN32
     const char *home = std::getenv("APPDATA");
     if (!home) {
-        std::cerr << "APPDATA not set\n";
+        std::cerr << "%APPDATA% not set\n";
         return 1;
     }
     base = fs::path(home) / "betterman";
 #else
     const char *home = std::getenv("HOME");
     if (!home) {
-        std::cerr << "HOME not set\n";
+        std::cerr << "$HOME not set\n";
         return 1;
     }
     base = fs::path(home) / ".config" / "betterman";

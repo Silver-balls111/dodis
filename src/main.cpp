@@ -9,6 +9,10 @@ import betterman.logger;
 
 namespace fs = std::filesystem;
 fs::path base;
+fs::path contributions_dir;
+fs::path themes_dir;
+fs::path task_fp;
+fs::path completion_fp;
 
 // this fun are not exported from a module as if the file changes then bmi
 // gets build again taking more build time than reduce.
@@ -41,10 +45,13 @@ int main(const int argc, const char **argkv) {
         fs::create_directories(base);
 
     Log::m_path = base / "log.log";
+    contributions_dir = base / "contributions";
+    themes_dir = base / "themes";
+    task_fp = base / "tasks.txt";
+    completion_fp = base / "completion.txt";
 
     if (argc == 1) {
-        fs::path path = base / "tasks.txt";
-        if (!fs::exists(path) || fs::is_empty(path))
+        if (!fs::exists(task_fp) || fs::is_empty(task_fp))
             Create();
         else
             Update();

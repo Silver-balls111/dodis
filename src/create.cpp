@@ -7,17 +7,18 @@ import std;
 import betterman.colors;
 import betterman.logger;
 
-extern std::filesystem::path base;
+namespace fs = std::filesystem;
+extern fs::path base;
+extern fs::path task_fp;
+extern fs::path completion_fp;
 
 void Create() {
     using namespace ftxui;
 
-    std::filesystem::path tp = base / "tasks.txt";
-    std::ofstream task_file{tp};
-    std::filesystem::path cp = base / "completion.txt";
-    std::ofstream compl_file{cp};
-    if (Log::fileOpenError(task_file, tp.string()) ||
-        Log::fileOpenError(compl_file, cp.string()))
+    std::ofstream task_file{task_fp};
+    std::ofstream compl_file{completion_fp};
+    if (Log::fileOpenError(task_file, task_fp.string()) ||
+        Log::fileOpenError(compl_file, completion_fp.string()))
         return;
 
     auto app = App::TerminalOutput();

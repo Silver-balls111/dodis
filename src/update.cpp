@@ -12,7 +12,10 @@ import betterman.logger;
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;
 
-extern std::filesystem::path base;
+extern fs::path base;
+extern fs::path contributions_dir;
+extern fs::path task_fp;
+extern fs::path completion_fp;
 
 ftxui::Color lerpColor(double t) { // t in [0,1]
     auto lerp = [](int a, int b, double t) {
@@ -28,10 +31,9 @@ void finishUP(float final_opacity, std::vector<double> compl_level,
     const string today{getZonedDate()};
     const string current_year = std::format("{:%Y}", getZonedDate<false>());
 
-    fs::path contribution_dir = base / "contributions";
-    if (!fs::exists(contribution_dir)) {
-        fs::create_directory(contribution_dir);
-        std::string msg = "Created directory: " + contribution_dir.string();
+    if (!fs::exists(contributions_dir)) {
+        fs::create_directory(contributions_dir);
+        std::string msg = "Created directory: " + contributions_dir.string();
         Log::log("INFO", msg);
     }
     /*
@@ -41,7 +43,7 @@ void finishUP(float final_opacity, std::vector<double> compl_level,
     is changed by the user to old dates then future entries will be removed.
     */
     std::string file_name = current_year + ".txt";
-    fs::path contribution_file_path = contribution_dir / file_name;
+    fs::path contribution_file_path = contributions_dir / file_name;
     vector<string> dates;
     vector<float> opacitys;
 
@@ -89,9 +91,8 @@ void finishUP(float final_opacity, std::vector<double> compl_level,
         sorted_comp[indices[i]] = compl_level[i];
     }
 
-    fs::path cfp = base / "completion.txt";
-    std::ofstream compl_file{cfp};
-    if (Log::fileOpenError(compl_file, cfp.string()))
+    std::ofstream compl_file{completion_fp};
+    if (Log::fileOpenError(compl_file, completion_fp.string()))
         exit(1);
 
     for (double x : sorted_comp) {
@@ -103,14 +104,13 @@ void finishUP(float final_opacity, std::vector<double> compl_level,
 std::vector<int> startUP(std::vector<double> &compl_level) {
     std::string today{getZonedDate()};
 
-    fs::path path = base / "completion.txt";
-    auto lwt{fs::last_write_time(path)};
+    auto lwt{fs::last_write_time(completion_fp)};
     auto s_lwt = chrono::clock_cast<chrono::system_clock>(lwt);
     chrono::zoned_time z_lwt{chrono::current_zone(), s_lwt};
     std::string last_modified = format("{:%Y/%m/%d}", z_lwt);
 
-    std::ifstream compl_file{path};
-    if(Log::fileOpenError(compl_file, path.string()))
+    std::ifstream compl_file{completion_fp};
+    if (Log::fileOpenError(compl_file, completion_fp.string()))
         exit(1);
 
     std::stringstream abc;
@@ -147,9 +147,8 @@ void Update() {
     std::vector<int> indices = startUP(compl_levels);
     const int tasks_len = compl_levels.size();
 
-    fs::path tfp = base / "tasks.txt";
-    std::ifstream task_file{tfp};
-    if(Log::fileOpenError(task_file, tfp.string()))
+    std::ifstream task_file{task_fp};
+    if (Log::fileOpenError(task_file, task_fp.string()))
         exit(1);
 
     std::string task;

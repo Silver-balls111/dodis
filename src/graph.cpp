@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/ftxui.hpp>
 #include <ftxui/screen/color_info.hpp>
@@ -6,10 +7,14 @@ import std;
 import betterman.colors;
 import betterman.conversions;
 import betterman.calender;
+import betterman.logger;
 
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;
 using namespace ftxui;
+
+extern fs::path base;
+extern fs::path contributions_dir;
 
 // BUG: hovering from bottom tile to above dosen't update tooltip
 // NOTE: on exit from tile hover tooltip becomes empty, is it fine?
@@ -77,12 +82,14 @@ void rebuildTiles(const chrono::year &choosen_year,
             tiles.push_back(getEmptyTile());
     }
 
-    std::string contrib_file_name =
-        std::format("contributions/{}.txt", choosen_year);
-    std::ifstream file{contrib_file_name};
-    if (!file)
+    std::string file_name = std::format("{}.txt", choosen_year);
+    fs::path contrib_file_path = contributions_dir / file_name;
+    std::ifstream file{contrib_file_path};
+    if (Log::fileOpenError(file, contrib_file_path.string())) {
+        std::string msg = std::strerror(errno);
         throw std::runtime_error(
-            std::format("Opening file {}.txt", choosen_year));
+            std::format("{}: {}", msg, contrib_file_path.string()));
+    }
 
     std::stringstream file_buffer;
     file_buffer << file.rdbuf();
@@ -106,9 +113,11 @@ void rebuildTiles(const chrono::year &choosen_year,
         opacitys.push_back(opacity);
     }
 
-    if (!file_buffer.eof())
-        throw std::runtime_error(
-            std::format("Reading file {}.txt", choosen_year));
+    if (!file_buffer.eof()) {
+        std::string msg = "Reading file: " + contrib_file_path.string();
+        Log::log("ERROR", msg);
+        throw std::runtime_error(msg);
+    }
 
     double sum{0};
     for (double opacity : opacitys)
@@ -202,7 +211,8 @@ void Graph(bool interactive) {
 
         if (interactive) {
             std::vector<chrono::year> file_names;
-            for (const auto &entry : fs::directory_iterator("contributions")) {
+            for (const auto &entry :
+                 fs::directory_iterator(contributions_dir)) {
                 if (entry.is_regular_file() &&
                     entry.path().extension() == fs::path(".txt")) {
                     try {
@@ -281,11 +291,11 @@ void Graph(bool interactive) {
             // BUG: yr selector buttons are not focused initially
             auto screen = App::TerminalOutput();
             auto whole = Container::Horizontal(
-                {Container::Vertical(
-                     {scrollable_content,
-                      scrollbar_holder |
-                          Maybe([&] { return screen.dimx() < 120; }),
-                      tooltip | xframe}) |
+                {Container::Vertical({scrollable_content,
+                                      scrollbar_holder | Maybe([&] {
+                                          return screen.dimx() < 120;
+                                      }),
+                                      tooltip | xframe}) |
                      flex,
                  buttons | vscroll_indicator | yframe |
                      size(HEIGHT, LESS_THAN, 7)});
@@ -300,10 +310,9 @@ void Graph(bool interactive) {
                     rebuildDay(day, days);
                     rebuildMonth(month, months);
 
-                    style = ButtonOption::Animated(Color::Default,
-                                                    Color::Grey62,
-                                                    Color::Default,
-                                                    Pallete::hover_bg);
+                    style = ButtonOption::Animated(
+                        Color::Default, Color::Grey62, Color::Default,
+                        Pallete::hover_bg);
                     rebuildButtons();
 
                     option_x.color_active = Pallete::tile_75;

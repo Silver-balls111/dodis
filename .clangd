@@ -4,13 +4,13 @@ CompileFlags:
 # needed other wise clangd goes nuts and cpu temp 90,
 # as if a build fails no bmi generated and clangd keeps on
 # indexing everything to find it.
-Index:
-  StandardLibrary: No
-
----
-If:
-  PathMatch:
-    - build/.*
-    - /usr/.*
-Index:
-  Background: Skip
+# Index:
+#   StandardLibrary: No
+#
+# ---
+# If:
+#   PathMatch:
+#     - build/.*
+#     - /usr/.*
+# Index:
+#   Background: Skip

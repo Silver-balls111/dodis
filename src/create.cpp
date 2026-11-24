@@ -5,20 +5,20 @@
 
 import std;
 import betterman.colors;
+import betterman.logger;
+
+extern std::filesystem::path base;
 
 void Create() {
     using namespace ftxui;
 
-    std::ofstream task_file{"tasks.txt"};
-    std::ofstream compl_file{"completion.txt"};
-    if (!task_file) {
-        std::cerr << "Error: Opening \"tasks.txt\" file.";
+    std::filesystem::path tp = base / "tasks.txt";
+    std::ofstream task_file{tp};
+    std::filesystem::path cp = base / "completion.txt";
+    std::ofstream compl_file{cp};
+    if (Log::fileOpenError(task_file, tp.string()) ||
+        Log::fileOpenError(compl_file, cp.string()))
         return;
-    }
-    if (!compl_file) {
-        std::cerr << "Error: Opening \"completion.txt\" file.";
-        return;
-    }
 
     auto app = App::TerminalOutput();
 

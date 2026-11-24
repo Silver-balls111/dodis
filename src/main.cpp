@@ -5,6 +5,10 @@ import std;
 import betterman.themeFile;
 import betterman.colors;
 import betterman.fileWatcher;
+import betterman.logger;
+
+namespace fs = std::filesystem;
+fs::path base;
 
 // this fun are not exported from a module as if the file changes then bmi
 // gets build again taking more build time than reduce.
@@ -15,13 +19,32 @@ void Help();
 void Edit();
 void themeSwitcher();
 
-namespace fs = std::filesystem;
-
 int main(const int argc, const char **argkv) {
     Pallete::setTheme();
+
+#ifdef _WIN32
+    const char *home = std::getenv("APPDATA");
+    if (!home) {
+        std::cerr << "APPDATA not set\n";
+        return 1;
+    }
+    base = fs::path(home) / "betterman";
+#else
+    const char *home = std::getenv("HOME");
+    if (!home) {
+        std::cerr << "HOME not set\n";
+        return 1;
+    }
+    base = fs::path(home) / ".config" / "betterman";
+#endif
+    if (!fs::exists(base))
+        fs::create_directories(base);
+
+    Log::m_path = base / "log.log";
+
     if (argc == 1) {
-        fs::path path{"tasks.txt"};
-        if (!std::filesystem::exists(path) || std::filesystem::is_empty(path))
+        fs::path path = base / "tasks.txt";
+        if (!fs::exists(path) || fs::is_empty(path))
             Create();
         else
             Update();

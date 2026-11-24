@@ -28,7 +28,7 @@ export {
 }
 
 export template<bool AsString = true>
-auto getLocalDate(){
+auto getZonedDate(){
     const auto now = chrono::system_clock::now();
     const chrono::zoned_time zt{chrono::current_zone(), now};
     const chrono::local_days today = chrono::floor<chrono::days>(zt.get_local_time());
@@ -37,10 +37,21 @@ auto getLocalDate(){
     else return today;
 }
 
+export template<bool AsString = true>
+auto getZonedTime(){
+    const auto now = chrono::system_clock::now();
+    const chrono::zoned_time zt{chrono::current_zone(), now};
+    const chrono::local_time today = chrono::floor<chrono::seconds>(zt.get_local_time());
+    if constexpr (AsString)
+        return std::format("{:%H:%M:%S}", today); 
+    else return today;
+}
+
+
 
 MonthInfo::MonthInfo(chrono::month month) {
     // Initializes the struct MonthInfo with current_year annd month
-    chrono::year_month_day today {getLocalDate<false>()};
+    chrono::year_month_day today {getZonedDate<false>()};
     initializer(today.year(), month);
 }
 

@@ -26,8 +26,7 @@
   ```
   
 **To-Do**:
-  - Create a log file.
-  - Make the file path independent of the executable path
+  - works on themes.
   - Support image to be used in contribution graph.
   - Create help()       [done.]
   - Support multiple year.      [done]
@@ -39,3 +38,5 @@
   - Make update() in ftxui. [done]
   - Add option to allow editing the task file. [done]
   - Add some premade color palletes. [done]
+  - Create a log file. [done]
+  - Make the file path independent of the executable path. [done]

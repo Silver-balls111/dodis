@@ -22,7 +22,7 @@ void Log::log(const std::string_view log_level, const std::string_view msg){
     std::ofstream log_file {m_path, std::ios::app};
     auto time = getZonedTime<false>();
     auto f_time = std::format("{:%Y-%m-%d %H:%M:%S}", time);
-    auto entry = std::format("[{}] {}: {}", f_time, log_level, msg);
+    auto entry = std::format("[{}] {}: {}\n", f_time, log_level, msg);
     log_file << entry;
     log_file.flush();
 }
@@ -31,7 +31,7 @@ void Log::log(){
     std::ofstream log_file {m_path, std::ios::app};
     auto time = getZonedTime<false>();
     auto f_time = std::format("{:%Y-%m-%d %H:%M:%S}", time);
-    auto entry = std::format("[{}] ERROR: {}", f_time, std::strerror(errno));
+    auto entry = std::format("[{}] ERROR: {}\n", f_time, std::strerror(errno));
     log_file << entry;
     log_file.flush();
 }

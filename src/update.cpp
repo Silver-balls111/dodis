@@ -1,12 +1,18 @@
+#include <cassert>
+#include <cstdlib>
+#include <filesystem>
 #include <ftxui/ftxui.hpp>
 
 import std;
 import betterman.colors;
 import betterman.conversions;
 import betterman.calender;
+import betterman.logger;
 
 namespace fs = std::filesystem;
 namespace chrono = std::chrono;
+
+extern std::filesystem::path base;
 
 ftxui::Color lerpColor(double t) { // t in [0,1]
     auto lerp = [](int a, int b, double t) {
@@ -19,44 +25,58 @@ ftxui::Color lerpColor(double t) { // t in [0,1]
 void finishUP(float final_opacity, std::vector<double> compl_level,
               std::vector<int> indices) {
     using namespace std;
-    const string today {getLocalDate()};
-    const string current_year = std::format("{:%Y}", getLocalDate<false>());
-    std::filesystem::path contribution_file_path{
-        std::format("contributions/{}.txt", current_year)};
+    const string today{getZonedDate()};
+    const string current_year = std::format("{:%Y}", getZonedDate<false>());
 
+    fs::path contribution_dir = base / "contributions";
+    if (!fs::exists(contribution_dir)) {
+        fs::create_directory(contribution_dir);
+        std::string msg = "Created directory: " + contribution_dir.string();
+        Log::log("INFO", msg);
+    }
     /*
     if we had just appended to the end of the file, when the program is run
     multiple time the same day there would be duplicate entry,
     thus we rewrite the file each time, this also implies if the system date
     is changed by the user to old dates then future entries will be removed.
     */
-    ifstream read_contribution{contribution_file_path};
+    std::string file_name = current_year + ".txt";
+    fs::path contribution_file_path = contribution_dir / file_name;
     vector<string> dates;
     vector<float> opacitys;
-    stringstream buffer;
-    if (read_contribution) {
-        // makes buffer a pointer to the contribution file buffer
-        // so we don't have to worry about whitespce while reading
-        buffer << read_contribution.rdbuf();
-        while (buffer) {
-            string date;
-            float opac;
-            buffer >> date >> opac;
-            if (!buffer || (date == today)) {
-                break;
+
+    // if it dosen't exist it's prolly first run.
+    if (fs::exists(contribution_file_path)) {
+        ifstream read_contribution{contribution_file_path};
+        if (Log::fileOpenError(read_contribution,
+                               contribution_file_path.string()))
+            exit(1);
+
+        stringstream buffer;
+        if (read_contribution) {
+            // makes buffer a pointer to the contribution file buffer
+            // so we don't have to worry about whitespce while reading
+            buffer << read_contribution.rdbuf();
+            while (buffer) {
+                string date;
+                float opac;
+                buffer >> date >> opac;
+                if (!buffer || (date == today)) {
+                    break;
+                }
+                dates.push_back(date);
+                opacitys.push_back(opac);
             }
-            dates.push_back(date);
-            opacitys.push_back(opac);
         }
+        read_contribution.close();
     }
-    read_contribution.close();
 
     dates.push_back(today);
     opacitys.push_back(final_opacity);
 
     ofstream contribution_file{contribution_file_path};
-    if (!contribution_file)
-        throw runtime_error("Couldn't open contributions file.");
+    if (Log::fileOpenError(contribution_file, contribution_file_path.string()))
+        exit(1);
 
     for (size_t i = 0; i < dates.size(); ++i) {
         contribution_file << format("{}\t{:.3}\n", dates[i], opacitys[i]);
@@ -68,7 +88,12 @@ void finishUP(float final_opacity, std::vector<double> compl_level,
     for (size_t i = 0; i < indices.size(); ++i) {
         sorted_comp[indices[i]] = compl_level[i];
     }
-    std::ofstream compl_file{"completion.txt"};
+
+    fs::path cfp = base / "completion.txt";
+    std::ofstream compl_file{cfp};
+    if (Log::fileOpenError(compl_file, cfp.string()))
+        exit(1);
+
     for (double x : sorted_comp) {
         compl_file << x << '\n';
     }
@@ -76,15 +101,18 @@ void finishUP(float final_opacity, std::vector<double> compl_level,
 }
 
 std::vector<int> startUP(std::vector<double> &compl_level) {
-    std::string today {getLocalDate()};
+    std::string today{getZonedDate()};
 
-    fs::path path{"completion.txt"};
+    fs::path path = base / "completion.txt";
     auto lwt{fs::last_write_time(path)};
     auto s_lwt = chrono::clock_cast<chrono::system_clock>(lwt);
     chrono::zoned_time z_lwt{chrono::current_zone(), s_lwt};
     std::string last_modified = format("{:%Y/%m/%d}", z_lwt);
 
     std::ifstream compl_file{path};
+    if(Log::fileOpenError(compl_file, path.string()))
+        exit(1);
+
     std::stringstream abc;
     abc << compl_file.rdbuf();
     double lvl;
@@ -114,13 +142,16 @@ void Update() {
 
     // NOTE: not sure whether to use altscr or just clear in main() using ansi
     // escp
-    auto screen = App::TerminalOutput();
 
     std::vector<double> compl_levels;
     std::vector<int> indices = startUP(compl_levels);
-
     const int tasks_len = compl_levels.size();
-    std::ifstream task_file{"tasks.txt"};
+
+    fs::path tfp = base / "tasks.txt";
+    std::ifstream task_file{tfp};
+    if(Log::fileOpenError(task_file, tfp.string()))
+        exit(1);
+
     std::string task;
     std::vector<std::string> unsorted_tasks;
     unsorted_tasks.reserve(tasks_len);
@@ -137,6 +168,9 @@ void Update() {
     tasks.reserve(tasks_len);
 
     task_file.close();
+
+    bool finished{false};
+    auto screen = App::TerminalOutput();
 
     MenuOption opt;
     opt.entries_option.transform = [&](EntryState state) {
@@ -235,14 +269,8 @@ void Update() {
         }
 
         if (event == Event::Escape || event == Event::q) {
-            float aggregate_compl{0.0};
-            for (float value : compl_levels) {
-                if (value == -1)
-                    continue;
-                aggregate_compl += value;
-            }
-            finishUP(aggregate_compl / tasks_len, compl_levels, indices);
             screen.ExitLoopClosure()();
+            finished = true;
         }
         return false;
     });
@@ -304,4 +332,16 @@ void Update() {
         return false;
     });
     screen.Loop(main_renderer);
+
+    // the terminal has been restored now
+    if (finished) {
+        float aggregate_compl{0.0};
+        for (float value : compl_levels) {
+            if (value == -1)
+                continue;
+            aggregate_compl += value;
+        }
+
+        finishUP(aggregate_compl / tasks_len, compl_levels, indices);
+    }
 }
